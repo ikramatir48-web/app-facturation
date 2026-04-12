@@ -151,7 +151,7 @@ export async function emailBLDisponible(to, nom, numeroCommande, numeroBL) {
       </div>
 
       <div style="text-align:center;margin:32px 0;">
-        <a href="https://ijtihad-gaz.vercel.app/client/documents" style="background:#e85d04;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;">
+        <a href="https://ijtihad-gaz.com/client/documents" style="background:#e85d04;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;">
           📄 Télécharger mon BL
         </a>
       </div>
@@ -183,7 +183,7 @@ export async function emailLivraisonEffectuee(to, nom, numeroCommande) {
       </div>
 
       <div style="text-align:center;margin:32px 0;">
-        <a href="https://ijtihad-gaz.vercel.app/client/documents" style="background:#e85d04;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;">
+        <a href="https://ijtihad-gaz.com/client/documents" style="background:#e85d04;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;">
           📄 Voir mes documents
         </a>
       </div>
