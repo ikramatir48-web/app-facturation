@@ -1,6 +1,7 @@
 import { supabase } from './supabase.js'
 
 const EDGE_URL = 'https://ugnmuxhgwiexuuetvbtd.supabase.co/functions/v1/dynamic-endpoint'
+const ADMIN_EMAIL = 'contact@ijtihad-gaz.com'
 
 async function sendEmail(to, subject, html) {
   try {
@@ -133,27 +134,20 @@ export async function emailConfirmationCommande(to, nom, numeroCommande, produit
 export async function emailBLDisponible(to, nom, numeroCommande, numeroBL) {
   await sendEmail(
     to,
-    `Bon de livraison ${numeroBL} disponible — Ijtihad Gaz`,
+    `Commande ${numeroCommande} confirmée — Ijtihad Gaz`,
     `
     <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:32px;background:#f9f9f9;border-radius:8px;">
       <h1 style="color:#e85d04;font-size:28px;margin-bottom:4px;">Ijtihad Gaz</h1>
-      <p style="color:#666;margin-bottom:32px;">Bon de livraison disponible</p>
+      <p style="color:#666;margin-bottom:32px;">Confirmation de commande</p>
       
       <h2 style="color:#111;">Bonjour ${nom},</h2>
       <p style="color:#444;line-height:1.6;">
-        Votre commande <strong>${numeroCommande}</strong> a été confirmée.<br/>
-        Votre bon de livraison <strong>${numeroBL}</strong> est disponible.
+        Votre commande <strong>${numeroCommande}</strong> a été confirmée par notre équipe.
       </p>
       
       <div style="background:#e8f5e9;border-left:4px solid #43a047;padding:16px;border-radius:4px;margin:24px 0;">
-        <strong style="color:#2e7d32;">✓ Commande confirmée</strong>
-        <p style="color:#444;margin:8px 0 0;">Cliquez ci-dessous pour télécharger votre bon de livraison.</p>
-      </div>
-
-      <div style="text-align:center;margin:32px 0;">
-        <a href="https://ijtihad-gaz.com/client/documents" style="background:#e85d04;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;">
-          📄 Télécharger mon BL
-        </a>
+        <strong style="color:#2e7d32;">✓ Commande en cours de préparation</strong>
+        <p style="color:#444;margin:8px 0 0;line-height:1.5;">Vous serez notifié par email dès que votre commande sera livrée.</p>
       </div>
       
       <hr style="border:none;border-top:1px solid #e0e0e0;margin:32px 0;" />
@@ -179,13 +173,7 @@ export async function emailLivraisonEffectuee(to, nom, numeroCommande) {
       
       <div style="background:#e8f5e9;border-left:4px solid #43a047;padding:16px;border-radius:4px;margin:24px 0;">
         <strong style="color:#2e7d32;">✓ Livraison effectuée</strong>
-        <p style="color:#444;margin:8px 0 0;">Votre bon de livraison est disponible dans votre espace client.</p>
-      </div>
-
-      <div style="text-align:center;margin:32px 0;">
-        <a href="https://ijtihad-gaz.com/client/documents" style="background:#e85d04;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;">
-          📄 Voir mes documents
-        </a>
+        <p style="color:#444;margin:8px 0 0;">Votre bon de livraison est disponible dans votre espace client sur <a href="https://ijtihad-gaz.com">ijtihad-gaz.com</a>.</p>
       </div>
       
       <hr style="border:none;border-top:1px solid #e0e0e0;margin:32px 0;" />
@@ -218,8 +206,7 @@ export async function emailFactureDisponible(to, nom, numeroCommande, numeroFact
       <div style="background:#fff3e0;border-left:4px solid #e85d04;padding:16px;border-radius:4px;margin:24px 0;">
         <strong style="color:#e85d04;">📋 Remise en main propre</strong>
         <p style="color:#444;margin:8px 0 0;line-height:1.5;">
-          Votre facture originale vous sera remise en main propre par notre équipe.
-          Vous pouvez également la consulter dans votre espace client.
+          Votre facture originale vous sera remise en main propre par notre équipe lors de votre prochaine livraison.
         </p>
       </div>
       
@@ -266,6 +253,86 @@ export async function emailEnvoiDocument(to, nom, typeDoc, numeroDoc, numeroComm
         Ijtihad Gaz — N° 67 LOT BLED SI THAMI 2ème étage Zemamra<br/>
         Tél : 06 67 33 70 73
       </p>
+    </div>
+    `
+  )
+}
+
+
+// ============================================================
+// EMAILS ADMIN
+// ============================================================
+
+export async function emailAdminNouvelleCommande(nomClient, numeroCommande, produits, total) {
+  const produitsHtml = produits.map(p =>
+    `<tr>
+      <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;">${p.produits?.nom || p.nom}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;text-align:center;">${p.quantite}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;text-align:right;">${(p.quantite * p.prix_unitaire).toFixed(2)} DH</td>
+    </tr>`
+  ).join('')
+
+  await sendEmail(
+    ADMIN_EMAIL,
+    `🛒 Nouvelle commande ${numeroCommande} — ${nomClient}`,
+    `
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:32px;background:#f9f9f9;border-radius:8px;">
+      <h1 style="color:#e85d04;font-size:28px;margin-bottom:4px;">Ijtihad Gaz</h1>
+      <p style="color:#666;margin-bottom:32px;">Nouvelle commande reçue</p>
+      
+      <div style="background:#e3f2fd;border-left:4px solid #1976d2;padding:16px;border-radius:4px;margin-bottom:24px;">
+        <strong style="color:#1976d2;">🛒 Commande ${numeroCommande}</strong>
+        <p style="color:#444;margin:8px 0 0;">Client : <strong>${nomClient}</strong></p>
+      </div>
+
+      <table style="width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;margin-bottom:16px;">
+        <thead>
+          <tr style="background:#f5f5f5;">
+            <th style="padding:10px 12px;text-align:left;font-size:12px;color:#666;">PRODUIT</th>
+            <th style="padding:10px 12px;text-align:center;font-size:12px;color:#666;">QTÉ</th>
+            <th style="padding:10px 12px;text-align:right;font-size:12px;color:#666;">TOTAL</th>
+          </tr>
+        </thead>
+        <tbody>${produitsHtml}</tbody>
+        <tfoot>
+          <tr style="background:#f5f5f5;">
+            <td colspan="2" style="padding:10px 12px;font-weight:700;">Total TTC</td>
+            <td style="padding:10px 12px;text-align:right;font-weight:700;color:#e85d04;">${total.toFixed(2)} DH</td>
+          </tr>
+        </tfoot>
+      </table>
+      
+      <hr style="border:none;border-top:1px solid #e0e0e0;margin:32px 0;" />
+      <p style="color:#999;font-size:12px;text-align:center;">Ijtihad Gaz — Système de gestion</p>
+    </div>
+    `
+  )
+}
+
+export async function emailAdminNouvelleDemandeCompte(nom, nomSociete, telephone, email) {
+  await sendEmail(
+    ADMIN_EMAIL,
+    `📋 Nouvelle demande de compte — ${nomSociete}`,
+    `
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:32px;background:#f9f9f9;border-radius:8px;">
+      <h1 style="color:#e85d04;font-size:28px;margin-bottom:4px;">Ijtihad Gaz</h1>
+      <p style="color:#666;margin-bottom:32px;">Nouvelle demande de compte client</p>
+      
+      <div style="background:#fff3e0;border-left:4px solid #e85d04;padding:16px;border-radius:4px;margin-bottom:24px;">
+        <strong style="color:#e85d04;">📋 Demande à traiter</strong>
+      </div>
+
+      <div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:24px;margin-bottom:24px;">
+        <div style="margin-bottom:12px;"><strong>Nom :</strong> ${nom}</div>
+        <div style="margin-bottom:12px;"><strong>Société :</strong> ${nomSociete}</div>
+        <div style="margin-bottom:12px;"><strong>Téléphone :</strong> ${telephone}</div>
+        <div><strong>Email :</strong> ${email}</div>
+      </div>
+      
+      <p style="color:#444;">Connectez-vous à l'espace admin pour traiter cette demande.</p>
+      
+      <hr style="border:none;border-top:1px solid #e0e0e0;margin:32px 0;" />
+      <p style="color:#999;font-size:12px;text-align:center;">Ijtihad Gaz — Système de gestion</p>
     </div>
     `
   )

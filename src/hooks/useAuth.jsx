@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useRef } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 const AuthContext = createContext({})
@@ -7,122 +7,86 @@ export function AuthProvider({ children }) {
   const [user, setUser]       = useState(undefined)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
-  const initializedRef = useRef(false)
 
   useEffect(() => {
     let mounted = true
 
-    async function init() {
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (!mounted) return
-        if (session?.user) {
-          setUser(session.user)
-          await loadProfile(session.user.id, true)
-        } else {
-          setUser(null)
-          setProfile(null)
-          setLoading(false)
-        }
-      } catch (e) {
-        if (mounted) {
-          setUser(null)
-          setProfile(null)
-          setLoading(false)
-        }
-      } finally {
-        initializedRef.current = true
-      }
-    }
-
-    init()
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!mounted) return
-        // Ignorer ces events qui ne changent pas l'etat fondamental
-        if (event === 'USER_UPDATED') return
-        if (event === 'TOKEN_REFRESHED') {
-          if (session?.user) setUser(session.user)
-          return
-        }
-        // SIGNED_IN apres retour sur l'onglet — ne pas remettre loading si deja initialise
-        if (event === 'SIGNED_IN' && session?.user) {
-          setUser(session.user)
-          // Si deja initialise et profil present, ne pas recharger
-          if (initializedRef.current && profile) return
-          await loadProfile(session.user.id, false) // false = ne pas mettre loading
-          return
-        }
-        if (event === 'SIGNED_OUT') {
-          setUser(null)
-          setProfile(null)
-          setLoading(false)
-        }
-      }
-    )
-
-    return () => {
-      mounted = false
-      subscription.unsubscribe()
-    }
-  }, [])
-
-  async function loadProfile(userId, showLoading = true) {
-    if (showLoading) setLoading(true)
-    try {
-      const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle()
-
-      if (!data) {
-        // Profil introuvable - utilisateur supprime
-        await supabase.auth.signOut()
+    // Initialisation simple - Supabase gère le token lui-même
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return
+      if (session?.user) {
+        setUser(session.user)
+        loadProfile(session.user.id, mounted)
+      } else {
         setUser(null)
         setProfile(null)
         setLoading(false)
+      }
+    }).catch(() => {
+      if (mounted) {
+        setUser(null)
+        setProfile(null)
+        setLoading(false)
+      }
+    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!mounted) return
+      if (event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED') return
+      if (event === 'SIGNED_IN' && session?.user) {
+        setUser(session.user)
+        loadProfile(session.user.id, mounted)
         return
       }
-      setProfile(data)
-    } catch (e) {
-      console.error('loadProfile error:', e)
-      // En cas d'erreur reseau, ne pas deconnecter - garder le profil existant
+      if (event === 'SIGNED_OUT') {
+        setUser(null)
+        setProfile(null)
+        setLoading(false)
+      }
+    })
+
+    return () => { mounted = false; subscription.unsubscribe() }
+  }, [])
+
+  async function loadProfile(userId, mounted = true) {
+    try {
+      const { data } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle()
+      if (!mounted) return
+      if (!data) {
+        supabase.auth.signOut()
+        setUser(null)
+        setProfile(null)
+      } else {
+        setProfile(data)
+      }
+    } catch(e) {
+      console.error(e)
     } finally {
-      if (showLoading) setLoading(false)
+      if (mounted) setLoading(false)
     }
   }
 
   async function fetchProfile(userId) {
     const id = userId || user?.id
     if (!id) return
-    await loadProfile(id, false)
+    const { data } = await supabase.from('profiles').select('*').eq('id', id).maybeSingle()
+    if (data) setProfile(data)
   }
 
   async function signIn(email, password) {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    return { error }
+    return supabase.auth.signInWithPassword({ email, password })
   }
 
   async function signUp(email, password, nom, telephone, extra = {}) {
-    const { error } = await supabase.auth.signUp({
-      email, password,
-      options: { data: { nom, role: 'client', telephone, ...extra } }
-    })
-    return { error }
+    return supabase.auth.signUp({ email, password, options: { data: { nom, role: 'client', telephone, ...extra } } })
   }
 
   async function resetPassword(email) {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin + '/auth'
-    })
-    return { error }
+    return supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + '/auth' })
   }
 
   async function updatePassword(newPassword) {
-    const { error } = await supabase.auth.updateUser({ password: newPassword })
-    return { error }
+    return supabase.auth.updateUser({ password: newPassword })
   }
 
   async function signOut() {
@@ -130,11 +94,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{
-      user, profile, loading,
-      signIn, signUp, signOut,
-      fetchProfile, resetPassword, updatePassword,
-    }}>
+    <AuthContext.Provider value={{ user, profile, loading, signIn, signUp, signOut, fetchProfile, resetPassword, updatePassword }}>
       {children}
     </AuthContext.Provider>
   )

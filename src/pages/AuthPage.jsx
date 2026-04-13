@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { supabase } from '../lib/supabase.js'
+import { emailAdminNouvelleDemandeCompte } from '../lib/email.js'
 import toast from 'react-hot-toast'
 import { Eye, EyeOff, Send, Check } from 'lucide-react'
 
@@ -107,6 +108,10 @@ export default function AuthPage() {
           message: `${demande.nom} (${demande.nom_societe}) demande un accès. Tél: ${demande.telephone}`,
         })
       }
+      // Email à l'admin
+      try {
+        await emailAdminNouvelleDemandeCompte(demande.nom, demande.nom_societe, demande.telephone, demande.email)
+      } catch(e) { console.error('Admin email error:', e) }
       setDemandeSent(true)
     } catch (err) {
       toast.error(err.message)

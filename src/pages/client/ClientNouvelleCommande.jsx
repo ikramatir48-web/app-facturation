@@ -4,7 +4,7 @@ import { useAuth } from '../../hooks/useAuth.jsx'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { ShoppingCart, ArrowRight, Check } from 'lucide-react'
-import { emailConfirmationCommande } from '../../lib/email.js'
+import { emailConfirmationCommande, emailAdminNouvelleCommande } from '../../lib/email.js'
 
 const ICONS = { 3: '🟡', 6: '🔵', 12: '🟠' }
 
@@ -138,6 +138,10 @@ export default function ClientNouvelleCommande() {
       setCmdNumero(cmd.numero_commande)
       setStep(3)
       toast.success('Commande enregistrée !')
+      // Email admin
+      try {
+        await emailAdminNouvelleCommande(profile.nom, cmd.numero_commande, lignesPanier, total)
+      } catch(e) { console.error('Admin email error:', e) }
       // Email confirmation commande
       try {
         const dateLivraisonLabel = dateLivraison

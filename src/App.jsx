@@ -16,6 +16,7 @@ import ClientNouvelleCommande from './pages/client/ClientNouvelleCommande.jsx'
 import ClientDocuments from './pages/client/ClientDocuments.jsx'
 import ClientParametres from './pages/client/ClientParametres.jsx'
 import ClientAdresses from './pages/client/ClientAdresses.jsx'
+import ClientContact from './pages/client/ClientContact.jsx'
 import ClientTarifs from './pages/client/ClientTarifs.jsx'
 import AppLayout from './components/shared/AppLayout.jsx'
 import ForceSetup from './pages/ForceSetup.jsx'
@@ -67,6 +68,7 @@ export default function App() {
         <Route path="documents" element={<ClientDocuments />} />
         <Route path="parametres" element={<ClientParametres />} />
         <Route path="adresses" element={<ClientAdresses />} />
+        <Route path="contact" element={<ClientContact />} />
         <Route path="tarifs" element={<ClientTarifs />} />
       </Route>
 

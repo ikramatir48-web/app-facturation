@@ -94,7 +94,7 @@ function ClientBloc({ client, label='LIVRÉ À :', adresse }) {
 
 function DocFooter() {
   return (
-    <div style={{ borderTop:'1px solid #aaa', marginTop:24, paddingTop:8, textAlign:'center', fontSize:10, color:'#555', lineHeight:1.7 }}>
+    <div className="doc-footer" style={{ borderTop:'1px solid #aaa', marginTop:24, paddingTop:8, textAlign:'center', fontSize:10, color:'#555', lineHeight:1.7 }}>
       {SOCIETE.nom} &nbsp;·&nbsp; {SOCIETE.adresse} &nbsp;·&nbsp; TEL : {SOCIETE.tel} &nbsp;·&nbsp; ICE : {SOCIETE.ice}
     </div>
   )
@@ -121,22 +121,36 @@ function DocModal({ titre, onClose, children, isDuplicata }) {
         @page {
           size: A4 portrait;
           margin: 10mm 12mm;
-          /* Supprime l'URL, date et titre ajoutés par le navigateur */
-          margin-top: 10mm;
         }
-        /* Chrome/Edge/Safari: supprime les en-têtes/pieds de page navigateur */
         @page :first { margin-top: 10mm; }
         head, header, footer { display: none !important; }
-        body > *                { display: none !important; }
+        body > * { display: none !important; }
         body > .modal-print-wrapper { display: block !important; }
-        .modal-print-wrapper    { display: block; width: 100%; }
+        .modal-print-wrapper { display: block; width: 100%; }
         .modal-print-wrapper #doc-print-content {
           display: block !important;
-          width: 100%;
-          font-family: Arial, sans-serif;
-          font-size: 12px;
-          color: #000;
-          background: #fff;
+          width: 100% !important;
+          font-family: Arial, sans-serif !important;
+          font-size: 12px !important;
+          color: #000 !important;
+          background: #fff !important;
+          padding: 0 0 20mm 0 !important;
+          box-sizing: border-box !important;
+        }
+        .modal-print-wrapper #doc-print-content .doc-footer {
+          position: fixed !important;
+          bottom: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          padding: 4mm 12mm !important;
+          border-top: 1px solid #aaa !important;
+          text-align: center !important;
+          font-size: 10px !important;
+          color: #555 !important;
+          background: #fff !important;
+        }
+        .modal-print-wrapper #doc-print-content .doc-spacer {
+          display: none !important;
         }
       }
     `
@@ -178,7 +192,7 @@ function DocModal({ titre, onClose, children, isDuplicata }) {
         </div>
 
         {/* Contenu */}
-        <div id="doc-content" style={{ ...S.page, position:'relative' }}>
+        <div id="doc-content" style={{ ...S.page, position:'relative', flex:1 }}>
           {isDuplicata && (
             <div style={{
               position:'absolute',
@@ -317,7 +331,7 @@ export function PrintBL({ bl, commande, lignes, client, livreur, adresse, onClos
       )}
 
       {/* ── SIGNATURES + QR ── */}
-      <div style={{ marginTop:32, paddingTop:20, borderTop:'1px solid #ddd' }}>
+      <div style={{ marginTop:48, paddingTop:20, borderTop:'1px solid #ddd' }}>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr auto', gap:20, alignItems:'end' }}>
           <div>
             <div style={{ fontSize:11, color:'#888', marginBottom:8 }}>Signature Réceptionnaire</div>
@@ -373,24 +387,29 @@ export function PrintBC({ commande, lignes, client, tva=10, onClose }) {
         </div>
       </div>
 
-      {/* ── ÉMETTEUR / CLIENT ── */}
+      {/* ── FACTURÉ À / LIVRÉ À ── */}
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:20 }}>
         <div>
-          <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:1, color:'#888', marginBottom:6 }}>Émetteur</div>
-          <div style={{ border:'1px solid #ccc', borderRadius:4, padding:'10px 12px' }}>
-            <div style={{ fontWeight:700, fontSize:13, color:'#000', marginBottom:4 }}>{SOCIETE.nom}</div>
+          <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:1, color:'#888', marginBottom:6 }}>Facturé à :</div>
+          <div style={{ border:'1px solid #ddd', borderRadius:4, padding:'10px 12px' }}>
+            {client?.nom_societe && <div style={{ fontWeight:700, fontSize:13, color:'#000' }}>{cap(client.nom_societe)}</div>}
+            <div style={{ fontWeight:700, fontSize:13, color:'#000', marginBottom:4 }}>{cap(client?.nom)}</div>
             <div style={{ fontSize:11, color:'#444', lineHeight:1.8 }}>
-              <div>Tél : {SOCIETE.tel}</div>
-              <div>ICE : {SOCIETE.ice}</div>
+              {client?.adresse && <div>{client.adresse}</div>}
+              {client?.ville && <div>{client.ville}</div>}
+              {client?.telephone && <div>Tél : {client.telephone}</div>}
+              {client?.ice && <div>ICE : {client.ice}</div>}
             </div>
           </div>
         </div>
         <div>
-          <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:1, color:'#888', marginBottom:6 }}>Client</div>
-          <div style={{ border:'1px solid #ccc', borderRadius:4, padding:'10px 12px' }}>
-            <div style={{ fontWeight:700, fontSize:13, color:'#000', marginBottom:4 }}>{client?.nom_societe ? `${cap(client.nom_societe)} — ${cap(client.nom)}` : cap(client?.nom)}</div>
+          <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:1, color:'#888', marginBottom:6 }}>Livré à :</div>
+          <div style={{ border:'1px solid #ddd', borderRadius:4, padding:'10px 12px' }}>
+            {client?.nom_societe && <div style={{ fontWeight:700, fontSize:13, color:'#000' }}>{cap(client.nom_societe)}</div>}
+            <div style={{ fontWeight:700, fontSize:13, color:'#000', marginBottom:4 }}>{cap(client?.nom)}</div>
             <div style={{ fontSize:11, color:'#444', lineHeight:1.8 }}>
               {client?.adresse && <div>{client.adresse}</div>}
+              {client?.ville && <div>{client.ville}</div>}
               {client?.telephone && <div>Tél : {client.telephone}</div>}
               {client?.ice && <div>ICE : {client.ice}</div>}
             </div>

@@ -1,6 +1,6 @@
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth.jsx'
-import { Flame, LayoutDashboard, ShoppingCart, Users, Package, FileText, LogOut, Plus, ClipboardList, Bell, FolderOpen, Truck, Settings, UserCheck, Menu, X as XIcon, Tag, FilePlus, Sun, Moon , MapPin} from 'lucide-react'
+import { Flame, LayoutDashboard, ShoppingCart, Users, Package, FileText, LogOut, Plus, ClipboardList, Bell, FolderOpen, Truck, Settings, UserCheck, Menu, X as XIcon, Tag, FilePlus, Sun, Moon , MapPin, MessageSquare} from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase.js'
 
@@ -205,6 +205,9 @@ export default function AppLayout() {
               </NavLink>
               <NavLink to="/client/adresses" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
                 <MapPin size={16} /> Adresses
+              </NavLink>
+              <NavLink to="/client/contact" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                <MessageSquare size={16} /> Contactez-nous
               </NavLink>
               <NavLink to="/client/parametres" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
                 <Settings size={16} /> Paramètres

@@ -4,7 +4,7 @@ import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { Check, X, Eye, EyeOff } from 'lucide-react'
-import { emailBienvenue } from '../../lib/email.js'
+import { emailBienvenue, emailAdminNouvelleDemandeCompte } from '../../lib/email.js'
 
 function genPassword() {
   const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789'
