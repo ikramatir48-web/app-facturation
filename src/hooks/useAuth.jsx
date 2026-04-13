@@ -1,62 +1,103 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 
 const AuthContext = createContext({})
 
 export function AuthProvider({ children }) {
-  const [user, setUser]       = useState(undefined) // undefined = pas encore vérifié
+  const [user, setUser]       = useState(undefined)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
+  const initializedRef = useRef(false)
 
   useEffect(() => {
-    // Vérifier la session au démarrage
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        setUser(session.user)
-        loadProfile(session.user.id)
-      } else {
-        setUser(null)
-        setLoading(false)
-      }
-    })
+    let mounted = true
 
-    // Écouter les changements de session
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN') {
-        setUser(session.user)
-        loadProfile(session.user.id)
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null)
-        setProfile(null)
-        setLoading(false)
-      } else if (event === 'USER_UPDATED') {
-        setUser(session?.user ?? null)
+    async function init() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!mounted) return
+        if (session?.user) {
+          setUser(session.user)
+          await loadProfile(session.user.id, true)
+        } else {
+          setUser(null)
+          setProfile(null)
+          setLoading(false)
+        }
+      } catch (e) {
+        if (mounted) {
+          setUser(null)
+          setProfile(null)
+          setLoading(false)
+        }
+      } finally {
+        initializedRef.current = true
       }
-    })
+    }
 
-    return () => subscription.unsubscribe()
+    init()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (!mounted) return
+        // Ignorer ces events qui ne changent pas l'etat fondamental
+        if (event === 'USER_UPDATED') return
+        if (event === 'TOKEN_REFRESHED') {
+          if (session?.user) setUser(session.user)
+          return
+        }
+        // SIGNED_IN apres retour sur l'onglet — ne pas remettre loading si deja initialise
+        if (event === 'SIGNED_IN' && session?.user) {
+          setUser(session.user)
+          // Si deja initialise et profil present, ne pas recharger
+          if (initializedRef.current && profile) return
+          await loadProfile(session.user.id, false) // false = ne pas mettre loading
+          return
+        }
+        if (event === 'SIGNED_OUT') {
+          setUser(null)
+          setProfile(null)
+          setLoading(false)
+        }
+      }
+    )
+
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
   }, [])
 
-  async function loadProfile(userId) {
-    setLoading(true)
+  async function loadProfile(userId, showLoading = true) {
+    if (showLoading) setLoading(true)
     try {
       const { data } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .maybeSingle()
-      setProfile(data || null)
-    } catch {
-      setProfile(null)
+
+      if (!data) {
+        // Profil introuvable - utilisateur supprime
+        await supabase.auth.signOut()
+        setUser(null)
+        setProfile(null)
+        setLoading(false)
+        return
+      }
+      setProfile(data)
+    } catch (e) {
+      console.error('loadProfile error:', e)
+      // En cas d'erreur reseau, ne pas deconnecter - garder le profil existant
     } finally {
-      setLoading(false)
+      if (showLoading) setLoading(false)
     }
   }
 
   async function fetchProfile(userId) {
     const id = userId || user?.id
     if (!id) return
-    await loadProfile(id)
+    await loadProfile(id, false)
   }
 
   async function signIn(email, password) {
@@ -90,15 +131,9 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={{
-      user,
-      profile,
-      loading,
-      signIn,
-      signUp,
-      signOut,
-      fetchProfile,
-      resetPassword,
-      updatePassword,
+      user, profile, loading,
+      signIn, signUp, signOut,
+      fetchProfile, resetPassword, updatePassword,
     }}>
       {children}
     </AuthContext.Provider>

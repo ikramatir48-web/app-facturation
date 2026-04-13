@@ -15,6 +15,7 @@ import ClientCommandes from './pages/client/ClientCommandes.jsx'
 import ClientNouvelleCommande from './pages/client/ClientNouvelleCommande.jsx'
 import ClientDocuments from './pages/client/ClientDocuments.jsx'
 import ClientParametres from './pages/client/ClientParametres.jsx'
+import ClientAdresses from './pages/client/ClientAdresses.jsx'
 import ClientTarifs from './pages/client/ClientTarifs.jsx'
 import AppLayout from './components/shared/AppLayout.jsx'
 import ForceSetup from './pages/ForceSetup.jsx'
@@ -35,7 +36,14 @@ function ProtectedRoute({ children, requiredRole }) {
 }
 
 export default function App() {
-  const { user, profile } = useAuth()
+  const { user, profile, loading } = useAuth()
+
+  // Attendre que l'état d'auth soit résolu avant de rendre quoi que ce soit
+  // Bloquer seulement si user n'est pas encore connu (premier chargement)
+  if (user === undefined) {
+    return <div className="loading-screen"><div className="spinner" /><span>Chargement...</span></div>
+  }
+
   return (
     <Routes>
       <Route path="/auth" element={!user ? <AuthPage /> : <Navigate to="/" replace />} />
@@ -58,6 +66,7 @@ export default function App() {
         <Route path="nouvelle-commande" element={<ClientNouvelleCommande />} />
         <Route path="documents" element={<ClientDocuments />} />
         <Route path="parametres" element={<ClientParametres />} />
+        <Route path="adresses" element={<ClientAdresses />} />
         <Route path="tarifs" element={<ClientTarifs />} />
       </Route>
 

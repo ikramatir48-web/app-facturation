@@ -8,6 +8,11 @@ import { Eye, EyeOff, Check, ArrowRight } from 'lucide-react'
 
 const ACTIVITES = ['Boulangerie', 'Restaurant', 'Snack', 'Café', 'Hôtel', 'Hammam', 'Épicerie', 'Industrie', 'Autre']
 
+function cap(str) {
+  if (!str) return str
+  return str.replace(/\b\w/g, c => c.toUpperCase())
+}
+
 export default function ForceSetup() {
   const { profile, fetchProfile } = useAuth()
   const [step, setStep] = useState(1) // 1=password, 2=profil
@@ -17,6 +22,8 @@ export default function ForceSetup() {
   const [activites, setActivites] = useState(ACTIVITES)
 
   const [pwd, setPwd] = useState({ nouveau: '', confirmation: '' })
+  const [adresses, setAdresses] = useState([{ label: '', adresse: '', ville: '' }])
+
   const [profil, setProfil] = useState({
     nom: profile?.nom || '',
     telephone: profile?.telephone || '',
@@ -25,6 +32,7 @@ export default function ForceSetup() {
     ice: profile?.ice || '',
     activite: profile?.activite || '',
     activite_autre: '',
+    ville: profile?.ville || '',
   })
 
   useEffect(() => {
@@ -71,6 +79,7 @@ export default function ForceSetup() {
         adresse: profil.adresse || null,
         nom_societe: profil.nom_societe || null,
         ice: profil.ice || null,
+        ville: profil.ville || null,
         activite: activiteFinal || null,
         force_password_change: false,
         password_changed: true,
@@ -158,31 +167,37 @@ export default function ForceSetup() {
 
           {step === 2 && (
             <>
-              <h3 className="font-display" style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Complétez votre profil</h3>
-              <p className="text-muted" style={{ fontSize: 13, marginBottom: 20 }}>Ces informations apparaîtront sur vos bons de livraison et factures.</p>
+              <h3 className="font-display" style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Vos informations</h3>
+              <div style={{ padding: '10px 14px', background: 'var(--warning-dim)', borderLeft: '4px solid var(--warning)', borderRadius: 4, marginBottom: 16, fontSize: 12, color: 'var(--text-muted)' }}>
+                Ces informations sont celles que vous avez fournies lors de votre demande. Pour toute modification, contactez-nous au <strong>06 67 33 70 73</strong>.
+              </div>
 
               <div className="form-group">
                 <label className="form-label">Nom complet *</label>
-                <input className="form-input" value={profil.nom} onChange={e => setProfil(p => ({ ...p, nom: e.target.value }))} />
+                <input className="form-input" value={profil.nom} readOnly style={{ background: "var(--bg-elevated)", cursor: "not-allowed" }} />
               </div>
               <div className="flex gap-3">
                 <div className="form-group flex-1">
                   <label className="form-label">Téléphone</label>
-                  <input className="form-input" value={profil.telephone} onChange={e => setProfil(p => ({ ...p, telephone: e.target.value }))} />
+                  <input className="form-input" value={profil.telephone} readOnly style={{ background: "var(--bg-elevated)", cursor: "not-allowed" }} />
                 </div>
                 <div className="form-group flex-1">
                   <label className="form-label">Adresse</label>
-                  <input className="form-input" value={profil.adresse} onChange={e => setProfil(p => ({ ...p, adresse: e.target.value }))} />
+                  <input className="form-input" value={profil.adresse} readOnly style={{ background: "var(--bg-elevated)", cursor: "not-allowed" }} />
                 </div>
               </div>
               <div className="form-group">
+                <label className="form-label">Ville</label>
+                <input className="form-input" value={profil.ville} readOnly style={{ background: "var(--bg-elevated)", cursor: "not-allowed" }} />
+              </div>
+              <div className="form-group">
                 <label className="form-label">Nom de la société</label>
-                <input className="form-input" value={profil.nom_societe} onChange={e => setProfil(p => ({ ...p, nom_societe: e.target.value }))} />
+                <input className="form-input" value={profil.nom_societe} readOnly style={{ background: "var(--bg-elevated)", cursor: "not-allowed" }} />
               </div>
               <div className="flex gap-3">
                 <div className="form-group flex-1">
                   <label className="form-label">ICE</label>
-                  <input className="form-input" value={profil.ice} onChange={e => setProfil(p => ({ ...p, ice: e.target.value }))} />
+                  <input className="form-input" value={profil.ice} readOnly style={{ background: "var(--bg-elevated)", cursor: "not-allowed" }} />
                 </div>
                 <div className="form-group flex-1">
                   <label className="form-label">Activité</label>
@@ -201,9 +216,61 @@ export default function ForceSetup() {
 
               <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}
                 onClick={saveProfil} disabled={saving}>
-                {saving ? <span className="spinner" /> : <Check size={15} />}
-                Accéder à mon espace
+                {saving ? <span className="spinner" /> : null}
+                Continuer <ArrowRight size={15} />
               </button>
+            </>
+          )}
+
+          {step === 3 && (
+            <>
+              <h3 className="font-display" style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Adresses de livraison</h3>
+              <p className="text-muted" style={{ fontSize: 13, marginBottom: 20 }}>
+                Ajoutez vos adresses de livraison. Vous pourrez en ajouter d'autres plus tard.
+              </p>
+
+              {adresses.map((adr, i) => (
+                <div key={i} style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 8, marginBottom: 12 }}>
+                  <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 10, color: 'var(--accent)' }}>Adresse {i + 1}</div>
+                  <div className="form-group">
+                    <label className="form-label">Nom / Label *</label>
+                    <input className="form-input" placeholder="Ex: Dépôt principal, Magasin centre..."
+                      value={adr.label} onChange={e => setAdresses(prev => prev.map((a, j) => j === i ? { ...a, label: e.target.value } : a))} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Adresse complète *</label>
+                    <input className="form-input" placeholder="Ex: N° 12 Rue Hassan II"
+                      value={adr.adresse} onChange={e => setAdresses(prev => prev.map((a, j) => j === i ? { ...a, adresse: e.target.value } : a))} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Ville</label>
+                    <input className="form-input" placeholder="Ex: Zemamra"
+                      value={adr.ville} onChange={e => setAdresses(prev => prev.map((a, j) => j === i ? { ...a, ville: e.target.value } : a))} />
+                  </div>
+                  {adresses.length > 1 && (
+                    <button className="btn btn-danger btn-sm" onClick={() => setAdresses(prev => prev.filter((_, j) => j !== i))}>
+                      Supprimer
+                    </button>
+                  )}
+                </div>
+              ))}
+
+              <button className="btn btn-ghost btn-sm" style={{ marginBottom: 16 }}
+                onClick={() => setAdresses(prev => [...prev, { label: '', adresse: '', ville: '' }])}>
+                + Ajouter une adresse
+              </button>
+
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button className="btn btn-ghost" style={{ flex: 1, justifyContent: 'center' }}
+                  onClick={saveAdresses} disabled={saving}>
+                  Passer cette étape
+                </button>
+                <button className="btn btn-primary" style={{ flex: 2, justifyContent: 'center' }}
+                  onClick={saveAdresses} disabled={saving}>
+                  {saving ? <span className="spinner" /> : <Check size={15} />}
+                  Accéder à mon espace
+                </button>
+              </div>
             </>
           )}
         </div>

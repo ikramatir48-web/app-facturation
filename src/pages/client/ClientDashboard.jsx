@@ -21,15 +21,26 @@ function StatutBadge({ statut }) {
 
 export default function ClientDashboard() {
   const { profile } = useAuth()
-  const [showGuide, setShowGuide] = useState(() => {
-    // Afficher le guide si première visite
-    const key = `guide_seen_${profile?.id || 'user'}`
-    return !localStorage.getItem(key)
-  })
+  const [showGuide, setShowGuide] = useState(false)
 
-  function closeGuide() {
-    const key = `guide_seen_${profile?.id || 'user'}`
+  useEffect(() => {
+    // Afficher le guide si première visite — stocké en base
+    if (profile?.id) {
+      const key = `guide_seen_${profile.id}`
+      const local = localStorage.getItem(key)
+      if (!local && !profile?.guide_seen) {
+        setShowGuide(true)
+      }
+    }
+  }, [profile?.id])
+
+  async function closeGuide() {
+    const key = `guide_seen_${profile?.id}`
     localStorage.setItem(key, 'true')
+    // Sauvegarder aussi en base pour persister même si localStorage est vidé
+    if (profile?.id) {
+      await supabase.from('profiles').update({ guide_seen: true }).eq('id', profile.id)
+    }
     setShowGuide(false)
   }
   const navigate = useNavigate()

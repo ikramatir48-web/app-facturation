@@ -19,12 +19,51 @@ export default function ClientNouvelleCommande() {
   const [loading, setLoading]         = useState(false)
   const [step, setStep]               = useState(1)
   const [cmdNumero, setCmdNumero]     = useState('')
+  const [adresses, setAdresses]       = useState([])
+  const [adresseId, setAdresseId]     = useState(null)
+  const [showNewAdresse, setShowNewAdresse] = useState(false)
+  const [newAdresse, setNewAdresse]   = useState({ label: '', adresse: '', ville: '' })
+  const [adresseSuggestions, setAdresseSuggestions] = useState([])
 
   useEffect(() => {
     loadProduits()
-    // Pré-remplir le mode de règlement depuis le profil
-    if (profile?.mode_reglement) setModeReglement(profile.mode_reglement)
-  }, [profile])
+  }, [])
+
+  useEffect(() => {
+    if (profile?.id) {
+      loadAdresses()
+      if (profile?.mode_reglement) setModeReglement(profile.mode_reglement)
+    }
+  }, [profile?.id])
+
+  async function loadAdresses() {
+    if (!profile?.id) return
+    const { data } = await supabase.from('adresses_livraison').select('*').eq('client_id', profile.id).order('created_at')
+    setAdresses(data || [])
+    if (data?.length > 0) {
+      const def = data.find(a => a.is_default) || data[0]
+      setAdresseId(def.id)
+    }
+  }
+
+  async function saveNewAdresse() {
+    if (!newAdresse.label.trim() || !newAdresse.adresse.trim()) {
+      toast.error('Le nom et l\'adresse sont obligatoires')
+      return
+    }
+    const { data, error } = await supabase.from('adresses_livraison').insert({
+      client_id: profile.id,
+      label: newAdresse.label,
+      adresse: newAdresse.adresse,
+      ville: newAdresse.ville,
+    }).select().single()
+    if (error) { toast.error(error.message); return }
+    setAdresses(prev => [...prev, data])
+    setAdresseId(data.id)
+    setShowNewAdresse(false)
+    setNewAdresse({ label: '', adresse: '', ville: '' })
+    toast.success('Adresse ajoutée !')
+  }
 
   async function loadProduits() {
     const { data } = await supabase.from('produits').select('*').eq('actif', true).order('nom')
@@ -51,46 +90,24 @@ export default function ClientNouvelleCommande() {
 
   async function passerCommande() {
     if (!hasItems) { toast.error('Ajoutez au moins un produit'); return }
+    if (!adresseId) { toast.error('Ajoutez une adresse de livraison avant de passer commande'); return }
     setLoading(true)
     try {
       const conditionPaiement = profile?.condition_paiement || 'immediat'
 
 
 
-      // Générer numéro unique côté JS avec timestamp + retry
-      let nextNumero = null
-      for (let attempt = 0; attempt < 5; attempt++) {
-        const { data: last } = await supabase
-          .from('commandes')
-          .select('numero_commande')
-          .like('numero_commande', 'CMD-%')
-          .order('numero_commande', { ascending: false })
-          .limit(1)
-        const lastNum = last?.[0]?.numero_commande
-          ? parseInt(last[0].numero_commande.replace('CMD-', ''), 10)
-          : 0
-        nextNumero = 'CMD-' + String(lastNum + 1).padStart(5, '0')
-        // Vérifier que ce numéro n'existe pas déjà
-        const { data: existing } = await supabase
-          .from('commandes')
-          .select('id')
-          .eq('numero_commande', nextNumero)
-          .maybeSingle()
-        if (!existing) break
-        // Si doublon, attendre un peu et réessayer
-        await new Promise(r => setTimeout(r, 100 * (attempt + 1)))
-      }
-
       const { data: cmd, error: e1 } = await supabase
         .from('commandes')
         .insert({
-          numero_commande: nextNumero,
+          numero_commande: null,
           client_id: profile.id,
           mode_paiement: 'livraison',
           condition_paiement: conditionPaiement,
           mode_reglement: modeReglement,
           notes: notes.trim() || null,
           date_livraison_souhaitee: dateLivraison || null,
+          adresse_livraison_id: adresseId || null,
         })
         .select().single()
       if (e1) throw e1
@@ -224,6 +241,73 @@ export default function ClientNouvelleCommande() {
                 </div>
               </div>
 
+              {/* Adresse de livraison */}
+              <div className="form-group">
+                <label className="form-label">Adresse de livraison</label>
+                {adresses.length === 0 && !showNewAdresse ? (
+                  <div style={{ padding: '12px 16px', background: 'var(--warning-dim)', borderLeft: '4px solid var(--warning)', borderRadius: 4, marginBottom: 8 }}>
+                    <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--warning)', marginBottom: 4 }}>Aucune adresse enregistrée</div>
+                    <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>Ajoutez votre adresse de livraison pour continuer.</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 8 }}>
+                    {adresses.map(a => (
+                      <div key={a.id} onClick={() => setAdresseId(a.id)} style={{
+                        padding: '10px 14px', borderRadius: 8, cursor: 'pointer',
+                        border: `2px solid ${adresseId === a.id ? 'var(--accent)' : 'var(--border)'}`,
+                        background: adresseId === a.id ? 'var(--accent-dim)' : 'var(--bg-elevated)',
+                      }}>
+                        <div style={{ fontWeight: 600, fontSize: 13, color: adresseId === a.id ? 'var(--accent)' : 'var(--text)' }}>{a.label}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{a.adresse}{a.ville ? `, ${a.ville}` : ''}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {showNewAdresse ? (
+                  <div style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 8, marginBottom: 8 }}>
+                    <div className="form-group">
+                      <label className="form-label">Nom / Label *</label>
+                      <input className="form-input" placeholder="Ex: Dépôt principal" value={newAdresse.label} onChange={e => setNewAdresse(p => ({ ...p, label: e.target.value }))} />
+                    </div>
+                    <div className="form-group" style={{ position: 'relative' }}>
+                      <label className="form-label">Adresse *</label>
+                      <input className="form-input" value={newAdresse.adresse} autoComplete="off"
+                        onChange={async e => {
+                          setNewAdresse(p => ({ ...p, adresse: e.target.value }))
+                          if (e.target.value.length > 2) {
+                            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(e.target.value)}&countrycodes=ma&limit=4`)
+                            const data = await res.json()
+                            setAdresseSuggestions(data || [])
+                          } else setAdresseSuggestions([])
+                        }} />
+                      {adresseSuggestions?.length > 0 && (
+                        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, zIndex: 100, boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
+                          {adresseSuggestions.map((s, i) => (
+                            <div key={i} onClick={() => {
+                              const parts = s.display_name.split(',')
+                              setNewAdresse(p => ({ ...p, adresse: parts.slice(0,2).join(',').trim(), ville: parts[parts.length-3]?.trim() || '' }))
+                              setAdresseSuggestions([])
+                            }} style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 12, borderBottom: '1px solid var(--border)' }}>
+                              📍 {s.display_name}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Ville</label>
+                      <input className="form-input" value={newAdresse.ville} onChange={e => setNewAdresse(p => ({ ...p, ville: e.target.value }))} />
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button className="btn btn-ghost btn-sm" onClick={() => setShowNewAdresse(false)}>Annuler</button>
+                      <button className="btn btn-primary btn-sm" onClick={saveNewAdresse}>Enregistrer</button>
+                    </div>
+                  </div>
+                ) : (
+                  <button className="btn btn-ghost btn-sm" onClick={() => setShowNewAdresse(true)}>+ Ajouter une adresse</button>
+                )}
+              </div>
+
               <div className="form-group">
                 <label className="form-label">Date de livraison souhaitée <span className="text-muted">(optionnel)</span></label>
                 <input className="form-input" type="date" value={dateLivraison} min={minDate} onChange={e => setDateLivraison(e.target.value)} />
@@ -240,6 +324,11 @@ export default function ClientNouvelleCommande() {
               <div style={{ padding: 14, background: 'var(--bg-elevated)', borderRadius: 10, marginBottom: 16 }}>
                 <div style={{ fontWeight: 600 }}>{profile?.nom}</div>
                 <div className="text-muted text-sm">{profile?.numero_client} — {profile?.email}</div>
+                {adresseId && adresses.find(a => a.id === adresseId) && (
+                  <div style={{ marginTop: 8, fontSize: 12, color: 'var(--text-muted)', borderTop: '1px solid var(--border)', paddingTop: 8 }}>
+                    📍 {adresses.find(a => a.id === adresseId)?.label} — {adresses.find(a => a.id === adresseId)?.adresse}
+                  </div>
+                )}
               </div>
 
               {dateLivraison && (

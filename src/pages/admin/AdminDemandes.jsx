@@ -62,6 +62,8 @@ export default function AdminDemandes() {
           telephone: selected.telephone,
           nom_societe: selected.nom_societe,
           ice: selected.ice,
+          adresse: selected.adresse,
+          ville: selected.ville,
           activite: selected.activite,
           condition_paiement: condPaiement,
         }),

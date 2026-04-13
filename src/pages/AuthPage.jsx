@@ -4,11 +4,16 @@ import { supabase } from '../lib/supabase.js'
 import toast from 'react-hot-toast'
 import { Eye, EyeOff, Send, Check } from 'lucide-react'
 
+function cap(str) {
+  if (!str) return str
+  return str.replace(/\b\w/g, c => c.toUpperCase())
+}
+
 export default function AuthPage() {
   const [mode, setMode] = useState('login') // login | demande | forgot
   const [form, setForm] = useState({ email: '', password: '' })
   const [demande, setDemande] = useState({
-    nom: '', email: '', telephone: '', nom_societe: '', ice: '', activite: '', activite_autre: ''
+    nom: '', email: '', telephone: '', nom_societe: '', ice: '', activite: '', activite_autre: '', adresse: '', ville: ''
   })
   const [activites, setActivites] = useState([])
   const [loading, setLoading] = useState(false)
@@ -61,6 +66,8 @@ export default function AuthPage() {
     if (!demande.email.trim()) { toast.error("L'email est obligatoire"); return }
     if (!demande.nom_societe.trim()) { toast.error('La raison sociale est obligatoire'); return }
     if (!demande.ice.trim()) { toast.error("L'ICE est obligatoire"); return }
+    if (!demande.adresse.trim()) { toast.error("L'adresse de l'entreprise est obligatoire"); return }
+    if (!demande.ville.trim()) { toast.error("La ville est obligatoire"); return }
     if (!demande.activite) { toast.error("L'activité est obligatoire"); return }
     setLoading(true)
     try {
@@ -84,6 +91,8 @@ export default function AuthPage() {
         telephone: demande.telephone,
         nom_societe: demande.nom_societe,
         ice: demande.ice,
+        adresse: demande.adresse,
+        ville: demande.ville,
         activite: activiteFinal,
         statut: 'en_attente',
       })
@@ -204,7 +213,7 @@ export default function AuthPage() {
             <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>Informations personnelles</div>
             <div className="form-group">
               <label className="form-label">Nom et prénom *</label>
-              <input className="form-input" value={demande.nom} onChange={e => updateD('nom', e.target.value)} required />
+              <input className="form-input" value={demande.nom} onChange={e => updateD('nom', e.target.value)} onBlur={e => updateD('nom', cap(e.target.value))} required />
             </div>
             <div className="flex gap-3">
               <div className="form-group flex-1">
@@ -222,7 +231,15 @@ export default function AuthPage() {
 
             <div className="form-group">
               <label className="form-label">Raison sociale *</label>
-              <input className="form-input" value={demande.nom_societe} onChange={e => updateD('nom_societe', e.target.value)} required />
+              <input className="form-input" value={demande.nom_societe} onChange={e => updateD('nom_societe', e.target.value)} onBlur={e => updateD('nom_societe', cap(e.target.value))} required />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Adresse de l'entreprise *</label>
+              <input className="form-input" value={demande.adresse} onChange={e => updateD('adresse', e.target.value)} required />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Ville *</label>
+              <input className="form-input" value={demande.ville} onChange={e => updateD('ville', e.target.value)} required />
             </div>
             <div className="flex gap-3">
               <div className="form-group flex-1">
