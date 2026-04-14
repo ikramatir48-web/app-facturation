@@ -33,6 +33,9 @@ export default function ClientDocuments() {
   const [counts, setCounts]   = useState({ commandes: 0, bls: 0, factures: 0 })
   const [loading, setLoading] = useState(true)
   const [printDoc, setPrintDoc] = useState(null)
+  const [filterDateDebut, setFilterDateDebut] = useState('')
+  const [filterDateFin, setFilterDateFin]     = useState('')
+  const [sortOrder, setSortOrder]             = useState('desc')
 
   useEffect(() => { if (profile?.id) loadAll() }, [profile])
 
@@ -48,7 +51,7 @@ export default function ClientDocuments() {
         .eq('commandes.client_id', profile.id)
         .order('date_creation', { ascending: false }),
       supabase.from('factures')
-        .select('*, bons_livraison(numero_bl), commandes!inner(numero_commande, mode_paiement, client_id)')
+        .select('*, bons_livraison(numero_bl), commandes!inner(numero_commande, mode_paiement, client_id, statut_paiement)')
         .eq('commandes.client_id', profile.id)
         .order('date_facture', { ascending: false }),
     ])
@@ -56,7 +59,11 @@ export default function ClientDocuments() {
     const d = {
       commandes: cmdRes.data || [],
       bls:       (blRes.data  || []).filter(b => b.commandes?.client_id === profile.id),
-      factures:  (factRes.data || []).filter(f => f.commandes?.client_id === profile.id),
+      // Factures uniquement visibles si la commande est marquée payée
+      factures:  (factRes.data || []).filter(f =>
+        f.commandes?.client_id === profile.id &&
+        f.commandes?.statut_paiement === 'paye'
+      ),
     }
     setData(d)
     setCounts({ commandes: d.commandes.length, bls: d.bls.length, factures: d.factures.length })
@@ -168,7 +175,23 @@ export default function ClientDocuments() {
         {section === 'commandes' && (
           data.commandes.length === 0
             ? <div className="empty-state"><h3>Aucun bon de commande</h3></div>
-            : <div className="table-wrap">
+            : <>
+                <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <input type="date" className="form-input" style={{ fontSize: 12, padding: '4px 8px', width: 'auto' }}
+                    value={filterDateDebut} onChange={e => setFilterDateDebut(e.target.value)} />
+                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>→</span>
+                  <input type="date" className="form-input" style={{ fontSize: 12, padding: '4px 8px', width: 'auto' }}
+                    value={filterDateFin} onChange={e => setFilterDateFin(e.target.value)} />
+                  <select className="form-select" style={{ fontSize: 12, padding: '4px 8px', width: 'auto' }}
+                    value={sortOrder} onChange={e => setSortOrder(e.target.value)}>
+                    <option value="desc">⬇ Plus récents</option>
+                    <option value="asc">⬆ Plus anciens</option>
+                  </select>
+                  {(filterDateDebut || filterDateFin) && (
+                    <button className="btn btn-ghost btn-sm" onClick={() => { setFilterDateDebut(''); setFilterDateFin('') }}>✕</button>
+                  )}
+                </div>
+                <div className="table-wrap">
                 <table>
                   <thead>
                     <tr>
@@ -180,7 +203,11 @@ export default function ClientDocuments() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.commandes.map(cmd => (
+                    {data.commandes
+                      .filter(c => !filterDateDebut || (c.created_at||'').slice(0,10) >= filterDateDebut)
+                      .filter(c => !filterDateFin   || (c.created_at||'').slice(0,10) <= filterDateFin)
+                      .sort((a,b) => sortOrder==='desc' ? new Date(b.created_at)-new Date(a.created_at) : new Date(a.created_at)-new Date(b.created_at))
+                      .map(cmd => (
                       <tr key={cmd.id}>
                         <td>
                           <span className="font-display" style={{ fontWeight: 700, color: '#0891b2' }}>
@@ -204,55 +231,93 @@ export default function ClientDocuments() {
                   </tbody>
                 </table>
               </div>
+            </>
         )}
 
         {/* BONS DE LIVRAISON */}
         {section === 'bls' && (
           data.bls.length === 0
             ? <div className="empty-state"><h3>Aucun bon de livraison</h3><p>Les bons de livraison apparaissent après confirmation de votre commande.</p></div>
-            : <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>N° BL</th>
-                      <th>Commande</th>
-                      <th>Date livraison</th>
-                      <th>État</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.bls.map(bl => (
-                      <tr key={bl.id}>
-                        <td>
-                          <span className="font-display" style={{ fontWeight: 700, color: '#059669' }}>
-                            {bl.numero_bl}
-                          </span>
-                        </td>
-                        <td className="text-muted">{bl.commandes?.numero_commande}</td>
-                        <td className="text-muted">
-                          {bl.date_livraison
-                            ? format(new Date(bl.date_livraison), 'dd/MM/yyyy')
-                            : <span className="badge badge-yellow">En attente</span>}
-                        </td>
-                        <td><StatutBadge statut={bl.commandes?.statut || 'en_attente'} /></td>
-                        <td>
-                          <button className="btn btn-ghost btn-sm" onClick={() => openPrintBL(bl)}>
-                            ⬇ Télécharger
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            : <>
+                <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <input type="date" className="form-input" style={{ fontSize: 12, padding: '4px 8px', width: 'auto' }}
+                    value={filterDateDebut} onChange={e => setFilterDateDebut(e.target.value)} />
+                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>→</span>
+                  <input type="date" className="form-input" style={{ fontSize: 12, padding: '4px 8px', width: 'auto' }}
+                    value={filterDateFin} onChange={e => setFilterDateFin(e.target.value)} />
+                  <select className="form-select" style={{ fontSize: 12, padding: '4px 8px', width: 'auto' }}
+                    value={sortOrder} onChange={e => setSortOrder(e.target.value)}>
+                    <option value="desc">⬇ Plus récents</option>
+                    <option value="asc">⬆ Plus anciens</option>
+                  </select>
+                  {(filterDateDebut || filterDateFin) && (
+                    <button className="btn btn-ghost btn-sm" onClick={() => { setFilterDateDebut(''); setFilterDateFin('') }}>✕</button>
+                  )}
+                </div>
+                      <div className="table-wrap">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>N° BL</th>
+                            <th>Commande</th>
+                            <th>Date livraison</th>
+                            <th>État</th>
+                            <th>Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {data.bls
+                            .filter(b => !filterDateDebut || (b.date_creation||'').slice(0,10) >= filterDateDebut)
+                            .filter(b => !filterDateFin   || (b.date_creation||'').slice(0,10) <= filterDateFin)
+                            .sort((a,b) => sortOrder==='desc' ? new Date(b.date_creation)-new Date(a.date_creation) : new Date(a.date_creation)-new Date(b.date_creation))
+                            .map(bl => (
+                            <tr key={bl.id}>
+                              <td>
+                                <span className="font-display" style={{ fontWeight: 700, color: '#059669' }}>
+                                  {bl.numero_bl}
+                                </span>
+                              </td>
+                              <td className="text-muted">{bl.commandes?.numero_commande}</td>
+                              <td className="text-muted">
+                                {bl.date_livraison
+                                  ? format(new Date(bl.date_livraison), 'dd/MM/yyyy')
+                                  : <span className="badge badge-yellow">En attente</span>}
+                              </td>
+                              <td><StatutBadge statut={bl.commandes?.statut || 'en_attente'} /></td>
+                              <td>
+                                <button className="btn btn-ghost btn-sm" onClick={() => openPrintBL(bl)}>
+                                  ⬇ Télécharger
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      </div>
+                    </>
         )}
 
         {/* FACTURES */}
         {section === 'factures' && (
           data.factures.length === 0
             ? <div className="empty-state"><h3>Aucune facture</h3><p>Les factures apparaissent après livraison.</p></div>
-            : <div className="table-wrap">
+            : <>
+                <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <input type="date" className="form-input" style={{ fontSize: 12, padding: '4px 8px', width: 'auto' }}
+                    value={filterDateDebut} onChange={e => setFilterDateDebut(e.target.value)} />
+                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>→</span>
+                  <input type="date" className="form-input" style={{ fontSize: 12, padding: '4px 8px', width: 'auto' }}
+                    value={filterDateFin} onChange={e => setFilterDateFin(e.target.value)} />
+                  <select className="form-select" style={{ fontSize: 12, padding: '4px 8px', width: 'auto' }}
+                    value={sortOrder} onChange={e => setSortOrder(e.target.value)}>
+                    <option value="desc">⬇ Plus récentes</option>
+                    <option value="asc">⬆ Plus anciennes</option>
+                  </select>
+                  {(filterDateDebut || filterDateFin) && (
+                    <button className="btn btn-ghost btn-sm" onClick={() => { setFilterDateDebut(''); setFilterDateFin('') }}>✕</button>
+                  )}
+                </div>
+                <div className="table-wrap">
                 <table>
                   <thead>
                     <tr>
@@ -264,7 +329,11 @@ export default function ClientDocuments() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.factures.map(f => (
+                    {data.factures
+                      .filter(f => !filterDateDebut || (f.date_facture||'').slice(0,10) >= filterDateDebut)
+                      .filter(f => !filterDateFin   || (f.date_facture||'').slice(0,10) <= filterDateFin)
+                      .sort((a,b) => sortOrder==='desc' ? new Date(b.date_facture)-new Date(a.date_facture) : new Date(a.date_facture)-new Date(b.date_facture))
+                      .map(f => (
                       <tr key={f.id}>
                         <td>
                           <span className="font-display" style={{ fontWeight: 700, color: '#dc2626' }}>
@@ -284,6 +353,7 @@ export default function ClientDocuments() {
                   </tbody>
                 </table>
               </div>
+            </>
         )}
       </div>
 

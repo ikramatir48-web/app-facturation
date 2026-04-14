@@ -140,7 +140,7 @@ export default function ClientDashboard() {
                 {recent.map(cmd => (
                   <tr key={cmd.id} style={{ cursor: 'pointer' }} onClick={() => navigate('/client/commandes')}>
                     <td><span className="font-display" style={{ fontWeight: 700, color: 'var(--accent)' }}>{cmd.numero_commande}</span></td>
-                    <td className="text-muted">{format(new Date(cmd.created_at), 'dd MMM yyyy', { locale: fr })}</td>
+                    <td className="text-muted">{format(new Date(cmd.created_at), 'dd/MM/yyyy')}</td>
                     <td><span className={`badge ${cmd.mode_paiement === 'credit' ? 'badge-yellow' : 'badge-green'}`}>
                       {cmd.mode_paiement === 'credit' ? 'Crédit' : 'À la livraison'}
                     </span></td>

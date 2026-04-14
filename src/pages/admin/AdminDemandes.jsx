@@ -152,7 +152,7 @@ export default function AdminDemandes() {
                       <td className="text-muted">{d.nom_societe || '—'}</td>
                       <td className="text-muted">{d.activite || '—'}</td>
                       <td className="text-muted">{d.telephone}</td>
-                      <td className="text-muted">{format(new Date(d.created_at), 'dd MMM yyyy', { locale: fr })}</td>
+                      <td className="text-muted">{format(new Date(d.created_at), 'dd/MM/yyyy')}</td>
                       <td>
                         <button className="btn btn-ghost btn-sm" onClick={e => { e.stopPropagation(); openDemande(d) }}>
                           <Eye size={13} /> Voir

@@ -193,7 +193,7 @@ export default function AdminDashboard() {
                         <div>{cmd.profiles?.nom}</div>
                         <div className="text-muted text-sm">{cmd.profiles?.numero_client}</div>
                       </td>
-                      <td className="text-muted">{format(new Date(cmd.created_at), 'dd MMM yyyy', { locale: fr })}</td>
+                      <td className="text-muted">{format(new Date(cmd.created_at), 'dd/MM/yyyy')}</td>
                       <td><StatutBadge statut={cmd.statut} /></td>
                     </tr>
                   ))}
