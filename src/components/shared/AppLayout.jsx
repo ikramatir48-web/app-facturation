@@ -2,6 +2,7 @@ import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth.jsx'
 import { Flame, LayoutDashboard, ShoppingCart, Users, Package, FileText, LogOut, Plus, ClipboardList, Bell, FolderOpen, Truck, Settings, UserCheck, Menu, X as XIcon, Tag, FilePlus, Sun, Moon , MapPin, MessageSquare} from 'lucide-react'
 import { useState, useEffect } from 'react'
+import toast from 'react-hot-toast'
 import { supabase } from '../../lib/supabase.js'
 
 function NotifPanel({ userId }) {
@@ -34,14 +35,19 @@ function NotifPanel({ userId }) {
         {notifs.length === 0
           ? <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>Aucune notification</div>
           : notifs.map(n => (
-            <div key={n.id} onClick={() => marquerLu(n.id)} style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', cursor: 'pointer', background: n.lu ? 'transparent' : 'var(--accent-dim)', transition: 'all 0.1s' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div key={n.id} onClick={() => marquerLu(n.id)} style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', cursor: 'pointer', background: n.lu ? 'transparent' : 'var(--accent-dim)', transition: 'background 0.1s' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
+              onMouseLeave={e => e.currentTarget.style.background = n.lu ? 'transparent' : 'var(--accent-dim)'}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                 <div style={{ fontWeight: 600, fontSize: 13, color: n.lu ? 'var(--text-muted)' : 'var(--text)', marginBottom: 3 }}>
                   {n.type === 'success' ? '✅' : n.type === 'warning' ? '⚠️' : 'ℹ️'} {n.titre}
                 </div>
                 {!n.lu && <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0, marginTop: 4 }} />}
               </div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>{n.message}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 4 }}>
+                {new Date(n.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+              </div>
             </div>
           ))}
       </div>
@@ -91,7 +97,15 @@ export default function AppLayout() {
       fetchNotifCount()
       const ch = supabase.channel('client-notifs-badge')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${profile.id}` },
-          () => setNotifCount(c => c + 1))
+          async (payload) => {
+            setNotifCount(c => c + 1)
+            // Toast visuel
+            const n = payload.new
+            if (n?.titre) {
+              const icon = n.type === 'success' ? '✅' : n.type === 'warning' ? '⚠️' : 'ℹ️'
+              toast(`${icon} ${n.titre}`, { duration: 4000 })
+            }
+          })
         .subscribe()
       return () => supabase.removeChannel(ch)
     }

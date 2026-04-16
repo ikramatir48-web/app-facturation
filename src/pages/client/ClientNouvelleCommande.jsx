@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase.js'
 import { useAuth } from '../../hooks/useAuth.jsx'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { ShoppingCart, ArrowRight, Check } from 'lucide-react'
 import { emailConfirmationCommande, emailAdminNouvelleCommande } from '../../lib/email.js'
@@ -11,6 +11,7 @@ const ICONS = { 3: '🟡', 6: '🔵', 12: '🟠' }
 export default function ClientNouvelleCommande() {
   const { profile } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [produits, setProduits]       = useState([])
   const [panier, setPanier]           = useState({})
   const [notes, setNotes]             = useState('')
@@ -68,6 +69,19 @@ export default function ClientNouvelleCommande() {
   async function loadProduits() {
     const { data } = await supabase.from('produits').select('*').eq('actif', true).order('nom')
     setProduits(data || [])
+    // Préremplir si on repasse une commande
+    const repasserCmd = location.state?.repasserCmd
+    if (repasserCmd?.lignes?.length) {
+      const panierInit = {}
+      repasserCmd.lignes.forEach(l => {
+        if (l.produit_id) panierInit[l.produit_id] = l.quantite
+      })
+      setPanier(panierInit)
+      toast.success('Panier prérempli avec votre ancienne commande')
+    }
+    if (repasserCmd?.adresseId) {
+      setAdresseId(repasserCmd.adresseId)
+    }
   }
 
   function setQty(id, delta) {

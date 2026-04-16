@@ -6,7 +6,7 @@ import { fr } from 'date-fns/locale'
 import { X, Plus } from 'lucide-react'
 import { PrintBL, PrintBC } from '../../components/shared/PrintDocs.jsx'
 import toast from 'react-hot-toast'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 
 function StatutBadge({ statut }) {
   const map = {
@@ -426,6 +426,13 @@ export default function ClientCommandes() {
                   {selected.cmd.statut === 'en_attente' && (
                     <button className="btn btn-danger btn-sm" style={{ justifyContent: 'center' }} onClick={() => annulerCommande(selected.cmd)}>
                       <X size={13} /> Annuler cette commande
+                    </button>
+                  )}
+
+                  {['livree', 'annulee'].includes(selected.cmd.statut) && (
+                    <button className="btn btn-ghost btn-sm" style={{ justifyContent: 'center', marginTop: 4 }}
+                      onClick={() => navigate('/client/nouvelle-commande', { state: { repasserCmd: { lignes: selected.lignes, adresseId: selected.cmd.adresse_livraison_id } } })}>
+                      🔄 Repasser cette commande
                     </button>
                   )}
                 </div>
