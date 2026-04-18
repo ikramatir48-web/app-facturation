@@ -133,7 +133,7 @@ export default function AdminDemandes() {
         })}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 380px' : '1fr', gap: 20 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         <div className="card" style={{ padding: 0 }}>
           {loading ? (
             <div style={{ padding: 40, textAlign: 'center' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
@@ -168,7 +168,7 @@ export default function AdminDemandes() {
 
         {/* Panneau détail */}
         {selected && (
-          <div className="card" style={{ position: 'sticky', top: 20, alignSelf: 'start' }}>
+          <div className="card">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-display" style={{ fontSize: 16, fontWeight: 700 }}>Demande de {selected.nom}</h3>
               <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setSelected(null)}><X size={15} /></button>

@@ -158,7 +158,7 @@ export default function ClientCommandes() {
 
       {/* VUE STATS */}
       {viewMode === 'stats' && (
-        <div className="stats-adresse-grid" style={{ display: 'grid', gridTemplateColumns: selectedAdresseStats ? '280px 1fr' : '1fr', gap: 20 }}>
+        <div className="stats-adresse-grid" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
           {/* Cartes adresses */}
           <div>
@@ -179,7 +179,7 @@ export default function ClientCommandes() {
                 Aucune adresse enregistrée
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
                 {adresses.map(a => {
                   let cmdsAdresse = commandes.filter(c => c.adresse_livraison_id === a.id)
                   if (statsDateDebut) cmdsAdresse = cmdsAdresse.filter(c => c.created_at >= statsDateDebut)
@@ -188,7 +188,7 @@ export default function ClientCommandes() {
                   const isSelected = selectedAdresseStats?.id === a.id
                   return (
                     <div key={a.id} className="card" onClick={() => setSelectedAdresseStats(isSelected ? null : a)}
-                      style={{ cursor: 'pointer', border: `2px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`, background: isSelected ? 'var(--accent-dim)' : 'var(--bg-card)', padding: 16, minHeight: 80 }}>
+                      style={{ cursor: 'pointer', border: `2px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`, background: isSelected ? 'var(--accent-dim)' : 'var(--bg-card)', padding: 18, minHeight: 90, borderRadius: 12 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <div>
                           <div style={{ fontWeight: 700, fontSize: 14, color: isSelected ? 'var(--accent)' : 'var(--text)' }}>📍 {a.label}</div>
@@ -216,12 +216,12 @@ export default function ClientCommandes() {
             )}
           </div>
 
-          {/* Liste commandes de l'adresse sélectionnée */}
+          {/* Liste commandes de l'adresse sélectionnée — affichée EN DESSOUS */}
           {selectedAdresseStats && (
-            <div>
+            <div style={{ borderTop: '2px solid var(--accent)', paddingTop: 16 }}>
               <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h3 style={{ fontWeight: 700, fontSize: 15 }}>📍 {selectedAdresseStats.label}</h3>
-                <button className="btn btn-ghost btn-sm" onClick={() => setSelectedAdresseStats(null)}>✕</button>
+                <button className="btn btn-ghost btn-sm" onClick={() => setSelectedAdresseStats(null)}>✕ Fermer</button>
               </div>
 
               {/* Filtres commandes */}

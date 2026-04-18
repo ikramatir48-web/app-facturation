@@ -152,7 +152,7 @@ export default function AppLayout() {
         {sidebarOpen ? <XIcon size={20} /> : <Menu size={20} />}
       </button>
 
-      <aside className={`sidebar${sidebarOpen ? ' sidebar-open' : ''}`}>
+      <aside className={`sidebar${sidebarOpen ? ' sidebar-open' : ''}`} style={{ display:'flex', flexDirection:'column', height:'100%', overflowY:'auto' }}>
         <div className="sidebar-logo">
           <div className="flex items-center gap-2">
             <div style={{ background: 'var(--accent-dim)', border: '1px solid var(--accent)', borderRadius: 8, padding: 6, display: 'flex' }}>
@@ -163,7 +163,7 @@ export default function AppLayout() {
           <span>{isAdmin ? 'Espace Gérant' : 'Espace Client'}</span>
         </div>
 
-        <nav className="sidebar-nav">
+        <nav className="sidebar-nav" style={{ flex:1, overflowY:'auto', minHeight:0 }}>
           {isAdmin ? (
             <>
               <div className="nav-section"><span>Principal</span></div>
