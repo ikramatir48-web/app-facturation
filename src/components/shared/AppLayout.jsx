@@ -66,7 +66,7 @@ export default function AppLayout() {
   const isAdmin = profile?.role === 'admin'
   const location = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark')
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light')
 
   useEffect(() => {
     document.body.classList.toggle('light', theme === 'light')
