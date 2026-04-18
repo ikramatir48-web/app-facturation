@@ -1,3 +1,4 @@
+import React from 'react'
 import { format } from 'date-fns'
 
 function nombreEnLettres(n) {
@@ -17,8 +18,19 @@ function nombreEnLettres(n) {
 }
 
 function QRCode({ value, size=80 }) {
-  const url = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(value)}`
-  return <img src={url} alt="QR" style={{ width:size, height:size, display:'block' }} />
+  const [dataUrl, setDataUrl] = React.useState('')
+  React.useEffect(() => {
+    import('qrcode').then(QR => {
+      QR.toDataURL(value, {
+        width: size * 2,
+        margin: 1,
+        color: { dark: '#000000', light: '#ffffff' },
+        errorCorrectionLevel: 'M',
+      }).then(url => setDataUrl(url)).catch(() => {})
+    }).catch(() => {})
+  }, [value, size])
+  if (!dataUrl) return <div style={{ width:size, height:size, background:'#f0f0f0', display:'flex', alignItems:'center', justifyContent:'center', fontSize:8, color:'#999' }}>QR</div>
+  return <img src={dataUrl} alt="QR" style={{ width:size, height:size, display:'block', imageRendering:'pixelated' }} />
 }
 
 function cap(str) {
