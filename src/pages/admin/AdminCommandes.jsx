@@ -305,7 +305,7 @@ export default function AdminCommandes() {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 400px' : '1fr', gap: 20 }}>
+      <div className="admin-split-grid" style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 400px' : '1fr', gap: 20 }}>
         {/* Liste */}
         <div className="card" style={{ padding: 0 }}>
           {loading ? (

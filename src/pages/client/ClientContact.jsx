@@ -59,7 +59,7 @@ export default function ClientContact() {
         <p>Notre équipe est à votre disposition.</p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+      <div className="contact-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
         {/* Coordonnées */}
         <div>
           <div className="card" style={{ marginBottom: 16 }}>

@@ -21,7 +21,7 @@ function StatutBadge({ statut }) {
 export default function AdminDashboard() {
   const { profile } = useAuth()
   const navigate = useNavigate()
-  const [stats, setStats] = useState({ total: 0, pending: 0, livrees: 0, clients: 0 })
+  const [stats, setStats] = useState({ total: 0, pending: 0, livrees: 0, clients: 0, caMois: 0, caEnAttente: 0, caPaye: 0, nbBlsNonPayes: 0 })
   const [pendingClients, setPendingClients] = useState([])
   const [showPendingModal, setShowPendingModal] = useState(false)
   const [recent, setRecent]       = useState([])
@@ -54,12 +54,12 @@ export default function AdminDashboard() {
   }
 
   async function load() {
-    const [cmdRes, clientRes, livrRes] = await Promise.all([
+    const moisDebut = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
+    const [cmdRes, clientRes, livrRes, blRes, cmdMoisRes] = await Promise.all([
       supabase.from('commandes')
-        .select('id, statut, created_at, numero_commande, mode_paiement, date_livraison_souhaitee, profiles(nom, numero_client)')
+        .select('id, statut, created_at, numero_commande, mode_paiement, date_livraison_souhaitee, statut_paiement, profiles(nom, numero_client)')
         .order('created_at', { ascending: false }).limit(8),
       supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'client'),
-      // Livraisons à venir (commandes validées avec date souhaitée dans les 7 prochains jours)
       supabase.from('commandes')
         .select('id, numero_commande, date_livraison_souhaitee, statut, profiles(nom, telephone)')
         .not('date_livraison_souhaitee', 'is', null)
@@ -67,14 +67,43 @@ export default function AdminDashboard() {
         .gte('date_livraison_souhaitee', new Date().toISOString().split('T')[0])
         .lte('date_livraison_souhaitee', addDays(new Date(), 7).toISOString().split('T')[0])
         .order('date_livraison_souhaitee', { ascending: true }),
+      // BLs non payés pour calculer le CA en attente
+      supabase.from('bons_livraison')
+        .select('*, commandes(statut_paiement, lignes_commande(quantite, prix_unitaire))')
+        .order('date_creation', { ascending: false }),
+      // Commandes du mois en cours
+      supabase.from('commandes')
+        .select('id, statut, statut_paiement, lignes_commande(quantite, prix_unitaire)')
+        .gte('created_at', moisDebut),
     ])
 
     const all = cmdRes.data || []
     const pending = all.filter(c => c.statut === 'en_attente').length
+
+    // CA du mois
+    const cmdsMois = cmdMoisRes.data || []
+    const caMois = cmdsMois.reduce((sum, cmd) => {
+      return sum + (cmd.lignes_commande || []).reduce((s, l) => s + l.quantite * l.prix_unitaire, 0)
+    }, 0)
+
+    // BLs non payés = CA en attente de paiement
+    const bls = blRes.data || []
+    const blsNonPayes = bls.filter(b => b.commandes?.statut_paiement !== 'paye')
+    const caEnAttente = blsNonPayes.reduce((sum, bl) => {
+      return sum + (bl.commandes?.lignes_commande || []).reduce((s, l) => s + l.quantite * l.prix_unitaire, 0)
+    }, 0)
+
+    // CA payé du mois
+    const caPaye = cmdsMois
+      .filter(c => c.statut_paiement === 'paye')
+      .reduce((sum, cmd) => sum + (cmd.lignes_commande || []).reduce((s, l) => s + l.quantite * l.prix_unitaire, 0), 0)
+
     setStats({
       total: all.length, pending,
       livrees: all.filter(c => c.statut === 'livree').length,
       clients: clientRes.count || 0,
+      caMois, caEnAttente, caPaye,
+      nbBlsNonPayes: blsNonPayes.length,
     })
     setRecent(all)
     setLivraisons(livrRes.data || [])
@@ -159,6 +188,25 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      {/* ── TABLEAU DE BORD FINANCIER ── */}
+      <div className="stats-grid" style={{ marginBottom: 28 }}>
+        <div className="stat-card green">
+          <div className="stat-label">CA du mois</div>
+          <div className="stat-value">{stats.caMois.toFixed(0)} DH</div>
+          <div className="stat-sub">dont {stats.caPaye.toFixed(0)} DH encaissés</div>
+        </div>
+        <div className="stat-card yellow">
+          <div className="stat-label">En attente de paiement</div>
+          <div className="stat-value" style={{ color: 'var(--warning)' }}>{stats.caEnAttente.toFixed(0)} DH</div>
+          <div className="stat-sub">{stats.nbBlsNonPayes} BL{stats.nbBlsNonPayes > 1 ? 's' : ''} non réglé{stats.nbBlsNonPayes > 1 ? 's' : ''}</div>
+        </div>
+        <div className="stat-card orange">
+          <div className="stat-label">Taux de recouvrement</div>
+          <div className="stat-value">{stats.caMois > 0 ? Math.round((stats.caPaye / stats.caMois) * 100) : 0}%</div>
+          <div className="stat-sub">du CA du mois encaissé</div>
+        </div>
+      </div>
+
       <div className="flex gap-3 mb-6">
         <button className="btn btn-primary" onClick={() => navigate('/admin/commandes')}>
           <ShoppingCart size={15} /> Gérer les commandes
@@ -168,7 +216,7 @@ export default function AdminDashboard() {
         <button className="btn btn-ghost" onClick={() => navigate('/admin/factures')}><FileText size={15} /> Factures</button>
       </div>
 
-      <div style={{ display:'grid', gridTemplateColumns: livraisons.length > 0 ? '1fr 340px' : '1fr', gap:20 }}>
+      <div className="admin-split-grid" style={{ display:'grid', gridTemplateColumns: livraisons.length > 0 ? '1fr 340px' : '1fr', gap:20 }}>
         {/* Commandes récentes */}
         <div className="card">
           <div className="flex items-center justify-between mb-4">

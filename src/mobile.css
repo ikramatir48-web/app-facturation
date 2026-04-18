@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════
-   RESPONSIVE MOBILE — remplace le media query de index.css
+   RESPONSIVE MOBILE COMPLET
 ═══════════════════════════════════════ */
 
 .hamburger-btn {
@@ -27,168 +27,9 @@
   z-index: 149;
 }
 
-.mobile-overlay.active {
-  display: block;
-}
+.mobile-overlay.active { display: block; }
 
-@media (max-width: 768px) {
-  /* Afficher hamburger */
-  .hamburger-btn {
-    display: flex;
-  }
-
-  /* Corriger le layout */
-  .app-layout {
-    display: block !important;
-  }
-
-  /* Sidebar — cachée à gauche par défaut */
-  .sidebar {
-    transform: translateX(-100%) !important;
-    transition: transform 0.3s ease !important;
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    bottom: 0 !important;
-    width: 240px !important;
-    z-index: 200 !important;
-    overflow-y: auto !important;
-  }
-
-  /* Sidebar ouverte */
-  .sidebar.sidebar-open {
-    transform: translateX(0) !important;
-  }
-
-  /* Contenu principal — toute la largeur */
-  .main-content {
-    margin-left: 0 !important;
-    padding: 56px 12px 24px !important;
-    width: 100vw !important;
-    max-width: 100vw !important;
-    overflow-x: hidden !important;
-    box-sizing: border-box !important;
-  }
-
-  /* Empêcher le scroll horizontal global */
-  body, #root {
-    overflow-x: hidden !important;
-    max-width: 100vw !important;
-  }
-
-  /* Tableaux scrollables horizontalement */
-  .table-wrap {
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-    width: 100% !important;
-  }
-
-  /* Stats 2 colonnes */
-  .stats-grid {
-    grid-template-columns: 1fr 1fr !important;
-    gap: 8px !important;
-  }
-
-  /* Page header colonne */
-  .page-header {
-    flex-direction: column !important;
-    align-items: flex-start !important;
-    gap: 8px !important;
-  }
-
-  /* Modals depuis le bas */
-  .modal-overlay {
-    align-items: flex-end !important;
-    padding: 0 !important;
-  }
-
-  .modal {
-    width: 100vw !important;
-    max-width: 100vw !important;
-    max-height: 92vh !important;
-    border-radius: 16px 16px 0 0 !important;
-    margin: 0 !important;
-  }
-
-  /* Auth plein écran */
-  .auth-page {
-    align-items: stretch !important;
-    padding: 0 !important;
-  }
-
-  .auth-card {
-    border-radius: 0 !important;
-    min-height: 100vh !important;
-    padding: 40px 20px !important;
-    max-width: 100% !important;
-  }
-
-  /* Grilles en 1 colonne */
-  .stats-grid {
-    grid-template-columns: 1fr 1fr !important;
-  }
-}
-
-@media (max-width: 420px) {
-  .main-content {
-    padding: 52px 8px 20px !important;
-  }
-}
-
-/* ═══════════════════════════════════════
-   TABLEAUX MOBILE — colonnes essentielles
-═══════════════════════════════════════ */
-
-@media (max-width: 768px) {
-
-  /* Page commandes admin — cacher livreur et statut, garder N°, Client, Date, Actions */
-  .table-wrap {
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-  }
-
-  /* Permettre le scroll horizontal sur les tableaux */
-  .table-wrap table {
-    min-width: 600px !important;
-  }
-
-  /* Rendre les cellules plus compactes */
-  thead th, tbody td {
-    padding: 8px 10px !important;
-    font-size: 12px !important;
-  }
-
-  /* Select livreur plus petit */
-  .table-wrap select.form-select {
-    font-size: 11px !important;
-    padding: 4px 6px !important;
-    min-width: 100px !important;
-  }
-
-  /* Badges plus petits */
-  .table-wrap .badge {
-    font-size: 10px !important;
-    padding: 2px 6px !important;
-  }
-
-  /* Boutons dans tableau plus petits */
-  .table-wrap .btn {
-    padding: 4px 8px !important;
-    font-size: 11px !important;
-    gap: 4px !important;
-  }
-
-  .table-wrap .btn svg {
-    width: 11px !important;
-    height: 11px !important;
-  }
-}
-
-/* ═══════════════════════════════════════
-   GRILLES SPÉCIFIQUES MOBILE
-═══════════════════════════════════════ */
-
-/* Commandes client — liste + détail */
+/* ── Grilles commandes ── */
 .commandes-grid-split {
   display: grid;
   grid-template-columns: 1fr 380px;
@@ -199,8 +40,6 @@
   grid-template-columns: 1fr;
   gap: 20px;
 }
-
-/* Nouvelle commande — produits + panier */
 .commande-grid {
   display: grid;
   grid-template-columns: 1fr 340px;
@@ -208,122 +47,239 @@
   align-items: start;
 }
 
-@media (max-width: 768px) {
-  /* Détail commande en dessous sur mobile */
-  .commandes-grid-split {
-    grid-template-columns: 1fr !important;
-  }
-
-  /* Panier en dessous sur mobile */
-  .commande-grid {
-    grid-template-columns: 1fr !important;
-  }
-
-  /* Panier non sticky sur mobile */
-  .commande-grid > div:last-child {
-    position: static !important;
-  }
-}
-
-/* ═══════════════════════════════════════
-   AMÉLIORATIONS MOBILE SUPPLÉMENTAIRES
-═══════════════════════════════════════ */
-
+/* ════════════════════════════════
+   TABLETTE (768px)
+════════════════════════════════ */
 @media (max-width: 768px) {
 
-  /* Filtres en colonne */
-  .flex.gap-3.mb-6,
-  .flex.gap-2.mb-4 {
-    flex-wrap: wrap !important;
-    gap: 8px !important;
+  /* Hamburger visible */
+  .hamburger-btn { display: flex; }
+
+  /* Layout principal */
+  .app-layout { display: block !important; }
+
+  /* Sidebar cachée */
+  .sidebar {
+    transform: translateX(-100%) !important;
+    transition: transform 0.3s ease !important;
+    position: fixed !important;
+    top: 0 !important; left: 0 !important; bottom: 0 !important;
+    width: 240px !important;
+    z-index: 200 !important;
+    overflow-y: auto !important;
+  }
+  .sidebar.sidebar-open { transform: translateX(0) !important; }
+
+  /* Contenu principal */
+  .main-content {
+    margin-left: 0 !important;
+    padding: 56px 12px 24px !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
   }
 
-  /* Boutons pleine largeur dans les filtres */
-  .page-header .flex {
-    flex-wrap: wrap !important;
-    gap: 8px !important;
-    width: 100% !important;
+  body, #root {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
   }
 
-  /* Cards stats 2 colonnes max */
+  /* Stats 2 colonnes */
   .stats-grid {
     grid-template-columns: 1fr 1fr !important;
     gap: 10px !important;
   }
+  .stat-value { font-size: 22px !important; }
+  .stat-card { padding: 14px !important; }
 
-  /* Stat value plus petit */
-  .stat-value {
-    font-size: 22px !important;
+  /* Cards */
+  .card { padding: 14px !important; }
+
+  /* Page header */
+  .page-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+  .page-header > div:last-child {
+    width: 100% !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
   }
 
-  /* Admin grid clients/factures — 1 colonne */
-  div[style*="gridTemplateColumns: '260px 1fr'"] {
-    display: flex !important;
+  /* Grilles → 1 colonne */
+  .commandes-grid-split,
+  .commande-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .commande-grid > div:last-child { position: static !important; }
+
+  /* Admin grilles inline → colonne */
+  .admin-split-grid {
     flex-direction: column !important;
   }
 
-  /* Formulaire inputs pleine largeur */
-  .form-input, .form-select, .form-textarea {
+  /* Tableaux scrollables */
+  .table-wrap {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
     width: 100% !important;
-    box-sizing: border-box !important;
   }
-
-  /* Cards sans padding excessif */
-  .card {
-    padding: 14px !important;
+  .table-wrap table { min-width: 500px !important; }
+  thead th, tbody td {
+    padding: 8px 10px !important;
+    font-size: 12px !important;
   }
+  .table-wrap .badge { font-size: 10px !important; padding: 2px 6px !important; }
+  .table-wrap .btn { padding: 4px 8px !important; font-size: 11px !important; }
 
-  /* Modals full height sur mobile */
+  /* Modals depuis le bas */
+  .modal-overlay { align-items: flex-end !important; padding: 0 !important; }
+  .modal {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    max-height: 92vh !important;
+    border-radius: 16px 16px 0 0 !important;
+    margin: 0 !important;
+  }
   .modal-body {
     max-height: 70vh !important;
     overflow-y: auto !important;
   }
 
-  /* Filtre bars en wrap */
-  div[style*="display: 'flex'"][style*="gap: 10"] {
-    flex-wrap: wrap !important;
+  /* Auth */
+  .auth-page { align-items: stretch !important; padding: 0 !important; }
+  .auth-card {
+    border-radius: 0 !important;
+    min-height: 100vh !important;
+    padding: 40px 20px !important;
+    max-width: 100% !important;
   }
 
-  /* Supprimer sticky sur mobile */
-  div[style*="position: 'sticky'"] {
+  /* Formulaires */
+  .form-group { margin-bottom: 14px !important; }
+
+  /* Flex wraps */
+  .flex.gap-3, .flex.gap-2 {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  /* Panneau détail sticky → static */
+  div[style*="position: sticky"],
+  div[style*="position:'sticky'"] {
     position: static !important;
   }
 
-  /* Print docs modal */
+  /* Contact page grid → colonne */
+  div[style*="gridTemplateColumns: '1fr 1fr'"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* AdminFactures liste clients + contenu → colonne */
+  div[style*="gridTemplateColumns:'260px 1fr'"] {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  /* AdminDashboard grid → colonne */
+  div[style*="gridTemplateColumns: livraisons"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* AdminCommandes + AdminDemandes split → colonne */
+  div[style*="gridTemplateColumns: selected"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* AdminDevis → colonne */
+  div[style*="gridTemplateColumns: '1fr 340px'"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Stats par adresse → colonne */
+  div[style*="gridTemplateColumns: selectedAdresseStats"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Print modal plein écran */
   .modal[style*="maxWidth:820"] {
     max-width: 100vw !important;
     height: 100vh !important;
     max-height: 100vh !important;
     border-radius: 0 !important;
   }
+
+  /* Filtres en wrap */
+  div[style*="display: 'flex'"][style*="gap: 10"],
+  div[style*="display:'flex'"][style*="gap:10"] {
+    flex-wrap: wrap !important;
+  }
+
+  /* Inputs full width */
+  input[type="date"].form-input { width: 100% !important; }
 }
 
-/* ── Touch-friendly ── */
+/* ════════════════════════════════
+   MOBILE (480px) — petit écran
+════════════════════════════════ */
+@media (max-width: 480px) {
+  .main-content { padding: 52px 10px 20px !important; }
+
+  /* Stats 1 colonne sur très petit écran */
+  .stats-grid { grid-template-columns: 1fr 1fr !important; }
+  .stat-value { font-size: 18px !important; }
+  .stat-label { font-size: 10px !important; }
+
+  /* Boutons du header en wrap */
+  .page-header .btn { width: 100% !important; justify-content: center !important; }
+
+  /* Pas de padding inutile */
+  .card { padding: 12px !important; border-radius: 10px !important; }
+
+  /* Timeline compacte */
+  .timeline-item { padding: 6px 0 !important; }
+
+  /* Badges plus petits */
+  .badge { font-size: 10px !important; padding: 2px 6px !important; }
+}
+
+/* ════════════════════════════════
+   TOUCH-FRIENDLY — targets tactiles
+════════════════════════════════ */
 @media (max-width: 768px) {
-  /* Targets plus grands pour le toucher */
-  .btn {
-    min-height: 38px !important;
-  }
+  .btn { min-height: 40px !important; }
+  .btn-sm { min-height: 34px !important; padding: 6px 12px !important; }
+  .btn-icon { min-height: 36px !important; min-width: 36px !important; }
+  .nav-item { padding: 12px 16px !important; min-height: 46px !important; }
 
-  .btn-sm {
-    min-height: 32px !important;
-    padding: 6px 12px !important;
-  }
-
-  .nav-item {
-    padding: 12px 16px !important;
+  /* iOS: éviter zoom sur focus */
+  .form-input, .form-select, .form-textarea {
+    font-size: 16px !important;
     min-height: 44px !important;
   }
 
-  /* Inputs plus hauts */
-  .form-input, .form-select {
-    min-height: 42px !important;
-    font-size: 16px !important; /* Évite le zoom iOS */
-  }
-
   /* Checkbox plus grande */
-  input[type="checkbox"] {
-    width: 18px !important;
-    height: 18px !important;
+  input[type="checkbox"] { width: 18px !important; height: 18px !important; }
+
+  /* Select natif */
+  select.form-select { min-height: 44px !important; }
+}
+
+/* ── Classes utilitaires grilles ── */
+@media (max-width: 768px) {
+  .admin-split-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+  }
+  .admin-split-grid > div {
+    width: 100% !important;
+    max-height: none !important;
+  }
+  .contact-grid {
+    grid-template-columns: 1fr !important;
   }
 }

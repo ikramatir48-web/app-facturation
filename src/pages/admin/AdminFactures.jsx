@@ -331,7 +331,7 @@ export default function AdminFactures() {
         </button>
       </div>
 
-      <div style={{ display:'grid', gridTemplateColumns:'260px 1fr', gap:20, alignItems:'start' }}>
+      <div className="admin-split-grid" style={{ display:'grid', gridTemplateColumns:'260px 1fr', gap:20, alignItems:'start' }}>
 
         {/* ── LISTE CLIENTS ── */}
         <div className="card" style={{ padding:0 }}>
