@@ -245,7 +245,7 @@ export function PrintBL({ bl, commande, lignes, client, livreur, adresse, onClos
   const date = bl?.date_creation ? format(new Date(bl.date_creation),'dd/MM/yyyy') : format(new Date(),'dd/MM/yyyy')
   const condition = getConditionLabel(commande?.condition_paiement || client?.condition_paiement)
   const lignesTri = trierLignes(lignes)
-  const qrData = `BL:${bl?.numero_bl}|CMD:${commande?.numero_commande}|CLIENT:${client?.nom}`
+  const qrData = `https://ijtihad-gaz.com/client/documents`
 
   return (
     <DocModal titre={`BL-${bl?.numero_bl}`} onClose={onClose}>
@@ -374,7 +374,7 @@ export function PrintBC({ commande, lignes, client, tva=10, onClose }) {
   const totalHT   = totalTTC / (1 + tva/100)
   const montantTVA = totalTTC - totalHT
   const date   = commande?.created_at ? format(new Date(commande.created_at),'dd/MM/yyyy HH:mm') : format(new Date(),'dd/MM/yyyy')
-  const qrData = `BC:${commande?.numero_commande}|CLIENT:${client?.nom}|TOTAL:${totalTTC.toFixed(2)}`
+  const qrData = `https://ijtihad-gaz.com/client/commandes`
 
   return (
     <DocModal titre={`BC-${commande?.numero_commande}`} onClose={onClose}>
@@ -503,7 +503,7 @@ export function PrintFacture({ facture, bl, bls, commande, lignes, client, tva=1
   const condition  = getConditionLabel(commande?.condition_paiement || client?.condition_paiement)
   const listeBLs   = bls && bls.length > 0 ? bls : (bl ? [bl] : [])
   const refsBLs    = listeBLs.map(b => b.numero_bl).join(', ')
-  const qrData     = `FACT:${facture?.numero_facture}|BL:${refsBLs}|CLIENT:${client?.nom}|TOTAL:${totalTTC.toFixed(2)}`
+  const qrData     = `https://ijtihad-gaz.com/client/documents`
   const titre      = isDuplicata ? `Facture-${facture?.numero_facture}_DUPLICATA` : `Facture-${facture?.numero_facture}`
 
   return (
@@ -739,7 +739,7 @@ export function PrintDevis({ numero, date, validite, client, lignes, tva = 10, n
       {/* ── QR + FOOTER ── */}
       <div style={{ display:'flex', justifyContent:'flex-end', marginTop:16 }}>
         <div style={{ textAlign:'center' }}>
-          <QRCode value={`DEVIS:${numero}|TOTAL:${totalTTC.toFixed(2)}`} size={65} />
+          <QRCode value={`https://ijtihad-gaz.com`} size={65} />
           <div style={{ fontSize:10, color:'#888', marginTop:3 }}>{numero}</div>
         </div>
       </div>
