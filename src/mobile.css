@@ -283,3 +283,48 @@
     grid-template-columns: 1fr !important;
   }
 }
+
+/* ════════════════════════════════
+   FIXES SPÉCIFIQUES
+════════════════════════════════ */
+
+@media (max-width: 768px) {
+
+  /* Sidebar scrollable jusqu'en bas (déconnexion visible) */
+  .sidebar {
+    display: flex !important;
+    flex-direction: column !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-bottom: 20px !important;
+  }
+  .sidebar-footer {
+    margin-top: auto !important;
+    flex-shrink: 0 !important;
+    position: static !important;
+  }
+  .sidebar-nav {
+    flex: 1 !important;
+    overflow-y: visible !important;
+  }
+
+  /* Stats par adresse client — panel en dessous pas à droite */
+  /* Override gridTemplateColumns inline pour stats */
+  div[style*="gridTemplateColumns: selectedAdresseStats"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* AdminDemandes — detail en dessous */
+  .admin-split-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Stats adresses client — colonne sur mobile */
+@media (max-width: 768px) {
+  .stats-adresse-grid {
+    grid-template-columns: 1fr !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+}

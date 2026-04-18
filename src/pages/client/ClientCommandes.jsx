@@ -158,7 +158,7 @@ export default function ClientCommandes() {
 
       {/* VUE STATS */}
       {viewMode === 'stats' && (
-        <div style={{ display: 'grid', gridTemplateColumns: selectedAdresseStats ? '280px 1fr' : '1fr', gap: 20 }}>
+        <div className="stats-adresse-grid" style={{ display: 'grid', gridTemplateColumns: selectedAdresseStats ? '280px 1fr' : '1fr', gap: 20 }}>
 
           {/* Cartes adresses */}
           <div>
@@ -188,7 +188,7 @@ export default function ClientCommandes() {
                   const isSelected = selectedAdresseStats?.id === a.id
                   return (
                     <div key={a.id} className="card" onClick={() => setSelectedAdresseStats(isSelected ? null : a)}
-                      style={{ cursor: 'pointer', border: `2px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`, background: isSelected ? 'var(--accent-dim)' : 'var(--bg-card)' }}>
+                      style={{ cursor: 'pointer', border: `2px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`, background: isSelected ? 'var(--accent-dim)' : 'var(--bg-card)', padding: 16, minHeight: 80 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <div>
                           <div style={{ fontWeight: 700, fontSize: 14, color: isSelected ? 'var(--accent)' : 'var(--text)' }}>📍 {a.label}</div>
