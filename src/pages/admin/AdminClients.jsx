@@ -1,7 +1,8 @@
+import React from 'react'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase.js'
 import toast from 'react-hot-toast'
-import { UserPlus, Check, X, Phone, UserCheck, Clock, Pencil, Eye, EyeOff } from 'lucide-react'
+import { UserPlus, Check, X, Phone, UserCheck, Clock, Pencil, Eye, EyeOff, MapPin, Share2 } from 'lucide-react'
 import { emailBienvenue } from '../../lib/email.js'
 
 const CONDITIONS_PAIEMENT = [
@@ -22,11 +23,72 @@ function genPassword() {
   return Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
 }
 
+function AdressesAdmin({ clientId }) {
+  const [adresses, setAdresses] = React.useState([])
+  const [stats, setStats] = React.useState({})
+
+  React.useEffect(() => { if (clientId) load() }, [clientId])
+
+  async function load() {
+    const { data: adr } = await supabase.from('adresses_livraison').select('*').eq('client_id', clientId)
+    setAdresses(adr || [])
+    // Stats livraisons par adresse
+    const { data: cmds } = await supabase.from('commandes')
+      .select('adresse_livraison_id').eq('client_id', clientId).eq('statut', 'livree')
+    const counts = {}
+    cmds?.forEach(c => { if (c.adresse_livraison_id) counts[c.adresse_livraison_id] = (counts[c.adresse_livraison_id] || 0) + 1 })
+    setStats(counts)
+  }
+
+  if (!adresses.length) return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>Adresses</div>
+      <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Aucune adresse enregistrée</div>
+    </div>
+  )
+
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>Adresses de livraison</div>
+      {adresses.map(a => (
+        <div key={a.id} style={{ padding: '8px 12px', background: 'var(--bg-elevated)', borderRadius: 8, marginBottom: 6, fontSize: 13 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <MapPin size={12} color="var(--accent)" />
+              <strong>{a.label}</strong>
+              {a.est_principale && <span style={{ fontSize: 10, background: 'var(--accent)', color: 'white', padding: '1px 5px', borderRadius: 10 }}>Principal</span>}
+            </div>
+            <span style={{ fontSize: 12, color: 'var(--success)', fontWeight: 600 }}>
+              {stats[a.id] || 0} livraison{(stats[a.id] || 0) > 1 ? 's' : ''}
+            </span>
+          </div>
+          <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 2 }}>{a.adresse}{a.ville ? `, ${a.ville}` : ''}</div>
+          {a.latitude && a.longitude && (
+            <a href={`https://maps.google.com/?q=${a.latitude},${a.longitude}`} target="_blank" rel="noreferrer"
+              style={{ fontSize: 11, color: 'var(--info)', marginTop: 4, display: 'inline-block' }}>
+              📍 Google Maps
+            </a>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function cap(str) {
+  if (!str) return str
+  return str.replace(/\b\w/g, c => c.toUpperCase())
+}
+
 export default function AdminClients() {
   const [clients, setClients]       = useState([])
   const [activites, setActivites]   = useState([])
   const [loading, setLoading]       = useState(true)
   const [showModal, setShowModal]   = useState(false)
+  const [detailClient, setDetailClient] = useState(null)
+  const [detailAdresses, setDetailAdresses] = useState([])
+  const [detailStats, setDetailStats] = useState({})
+  const [detailFinance, setDetailFinance] = useState(null)
   const [showPendingModal, setShowPendingModal] = useState(false)
   const [pendingClients, setPendingClients]     = useState([])
   const [editClient, setEditClient] = useState(null)
@@ -97,6 +159,36 @@ export default function AdminClients() {
     await supabase.from('profiles').update({ statut_compte: 'suspendu' }).eq('id', client.id)
     toast.success('Compte suspendu')
     load()
+  }
+
+  async function ouvrirDetail(client) {
+    setDetailClient(client)
+    setDetailFinance(null)
+
+    const [adrRes, cmdsRes] = await Promise.all([
+      supabase.from('adresses_livraison').select('*').eq('client_id', client.id).order('is_default', { ascending: false }),
+      supabase.from('commandes').select('id, statut, statut_paiement, adresse_livraison_id, lignes_commande(quantite, prix_unitaire)').eq('client_id', client.id),
+    ])
+
+    const adr = adrRes.data || []
+    const cmds = cmdsRes.data || []
+    setDetailAdresses(adr)
+
+    // Stats par adresse
+    const counts = {}
+    cmds.filter(c => c.statut === 'livree').forEach(c => {
+      if (c.adresse_livraison_id) counts[c.adresse_livraison_id] = (counts[c.adresse_livraison_id] || 0) + 1
+    })
+    setDetailStats(counts)
+
+    // Finance
+    const caTotal = cmds.reduce((sum, c) => sum + (c.lignes_commande||[]).reduce((s,l) => s + l.quantite*l.prix_unitaire, 0), 0)
+    const impayees = cmds.filter(c => c.statut === 'livree' && c.statut_paiement !== 'paye')
+    const soldeImpaye = impayees.reduce((sum, c) => sum + (c.lignes_commande||[]).reduce((s,l) => s + l.quantite*l.prix_unitaire, 0), 0)
+    const nbCommandes = cmds.length
+    const nbLivrees = cmds.filter(c => c.statut === 'livree').length
+
+    setDetailFinance({ caTotal, soldeImpaye, nbCommandes, nbLivrees, nbImpayees: impayees.length })
   }
 
   async function handleSave() {
@@ -269,6 +361,7 @@ export default function AdminClients() {
                     </td>
                     <td>
                       <div className="flex gap-2">
+                        <button className="btn btn-ghost btn-sm btn-icon" onClick={() => ouvrirDetail(c)} title="Voir les adresses"><MapPin size={13} /></button>
                         <button className="btn btn-ghost btn-sm btn-icon" onClick={() => openEdit(c)}><Pencil size={13} /></button>
                         {(c.statut_compte === 'en_attente' || !c.statut_compte) && (
                           <button className="btn btn-success btn-sm" onClick={() => activerCompte(c)}><Check size={13} /> Activer</button>
@@ -288,6 +381,77 @@ export default function AdminClients() {
           </div>
         )}
       </div>
+
+      {/* Modal détail client - adresses */}
+      {detailClient && (
+        <div className="modal-overlay" onClick={() => setDetailClient(null)}>
+          <div className="modal" style={{ maxWidth: 500 }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>{detailClient.nom_societe || detailClient.nom}</h3>
+              <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setDetailClient(null)}><X size={15} /></button>
+            </div>
+            <div className="modal-body">
+              {/* ── FINANCE ── */}
+              {detailFinance && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
+                  <div className="stat-card blue" style={{ padding: '12px 14px' }}>
+                    <div className="stat-label">CA total</div>
+                    <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 800 }}>{detailFinance.caTotal.toFixed(0)} DH</div>
+                    <div className="stat-sub">{detailFinance.nbCommandes} commande{detailFinance.nbCommandes > 1 ? 's' : ''}</div>
+                  </div>
+                  <div className="stat-card" style={{ padding: '12px 14px', borderTop: `2px solid ${detailFinance.soldeImpaye > 0 ? 'var(--warning)' : 'var(--success)'}` }}>
+                    <div className="stat-label">Solde impayé</div>
+                    <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 800, color: detailFinance.soldeImpaye > 0 ? 'var(--warning)' : 'var(--success)' }}>
+                      {detailFinance.soldeImpaye > 0 ? detailFinance.soldeImpaye.toFixed(0) + ' DH' : '✓ À jour'}
+                    </div>
+                    <div className="stat-sub">
+                      {detailFinance.nbImpayees > 0 ? `${detailFinance.nbImpayees} livraison${detailFinance.nbImpayees > 1 ? 's' : ''} non réglée${detailFinance.nbImpayees > 1 ? 's' : ''}` : `${detailFinance.nbLivrees} livraison${detailFinance.nbLivrees > 1 ? 's' : ''} réglée${detailFinance.nbLivrees > 1 ? 's' : ''}`}
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--text-muted)', marginBottom: 10 }}>📍 Adresses de livraison</div>
+              {detailAdresses.length === 0 ? (
+                <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 20 }}>
+                  Aucune adresse enregistrée pour ce client.
+                </div>
+              ) : (
+                detailAdresses.map(a => (
+                  <div key={a.id} style={{ padding: '12px 14px', background: 'var(--bg-elevated)', borderRadius: 10, marginBottom: 10, border: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                          <strong>{a.label}</strong>
+                          {a.est_principale && <span style={{ fontSize: 10, background: 'var(--accent)', color: 'white', padding: '1px 6px', borderRadius: 10 }}>Principale</span>}
+                          <span style={{ fontSize: 12, color: 'var(--success)' }}>
+                            {detailStats[a.id] ? `${detailStats[a.id]} livraison(s)` : ''}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{a.adresse}</div>
+                        {a.ville && <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{a.ville}</div>}
+                        {a.latitude && a.longitude && (
+                          <a href={`https://maps.google.com/?q=${a.latitude},${a.longitude}`} target="_blank" rel="noreferrer"
+                            style={{ fontSize: 12, color: 'var(--info)', marginTop: 4, display: 'inline-block' }}>
+                            📍 Google Maps
+                          </a>
+                        )}
+                      </div>
+                      <button className="btn btn-ghost btn-sm" title="Partager"
+                        onClick={() => {
+                          const txt = `📍 ${a.label}\n${a.adresse}${a.ville ? ', ' + a.ville : ''}${a.latitude ? '\nhttps://maps.google.com/?q=' + a.latitude + ',' + a.longitude : ''}`
+                          if (navigator.share) navigator.share({ title: 'Adresse', text: txt })
+                          else { navigator.clipboard.writeText(txt); toast.success('Copié !') }
+                        }}>
+                        <Share2 size={13} /> Partager
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>

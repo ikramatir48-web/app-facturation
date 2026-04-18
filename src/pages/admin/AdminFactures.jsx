@@ -6,6 +6,94 @@ import { fr } from 'date-fns/locale'
 import { Search, Settings, Check, X, FileText } from 'lucide-react'
 import { PrintBL, PrintFacture } from '../../components/shared/PrintDocs.jsx'
 
+function FacturesTable({ factures, filterDateDebutFact, filterDateFinFact, filterAdresseFact, sortFactures, adresses, format, openPrintFacture, toggleOriginalRemis }) {
+  const facturesFiltrees = factures
+    .filter(f => !filterDateDebutFact || (f.date_facture||'').slice(0,10) >= filterDateDebutFact)
+    .filter(f => !filterDateFinFact   || (f.date_facture||'').slice(0,10) <= filterDateFinFact)
+    .filter(f => !filterAdresseFact   || f.commandes?.adresse_livraison_id === filterAdresseFact)
+    .sort((a, b) => sortFactures === 'desc'
+      ? new Date(b.date_facture) - new Date(a.date_facture)
+      : new Date(a.date_facture) - new Date(b.date_facture)
+    )
+  if (facturesFiltrees.length === 0) {
+    return <div className="empty-state"><h3>Aucune facture</h3><p style={{ fontSize:13, color:'var(--text-muted)' }}>Aucune facture pour ces filtres.</p></div>
+  }
+  return (
+    <div className="table-wrap">
+      <table>
+        <thead><tr><th>N° Facture</th><th>Réf. BL(s)</th><th>Date</th><th>Montant TTC</th><th>Adresse</th><th>Action</th></tr></thead>
+        <tbody>
+          {facturesFiltrees.map(f => (
+            <tr key={f.id}>
+              <td><span className="font-display" style={{ fontWeight:700, color:'var(--success)' }}>{f.numero_facture}</span></td>
+              <td><span className="badge badge-blue" style={{ fontSize:11 }}>{f.bons_livraison?.numero_bl || '—'}</span></td>
+              <td className="text-muted">{format(new Date(f.date_facture), 'dd/MM/yyyy')}</td>
+              <td style={{ fontWeight:700 }}>{Number(f.montant_total).toFixed(2)} DH</td>
+              <td className="text-muted" style={{ fontSize: 12 }}>{adresses.find(a => a.id === f.commandes?.adresse_livraison_id)?.label || '—'}</td>
+              <td>
+                <div className="flex gap-2 items-center">
+                  <button className="btn btn-ghost btn-sm" onClick={() => openPrintFacture(f)}>⬇ Télécharger</button>
+                  <button onClick={() => toggleOriginalRemis(f.id, f.original_remis)}
+                    style={{ fontSize:11, padding:'3px 8px', borderRadius:6, border:'none', cursor:'pointer',
+                      background: f.original_remis ? 'var(--success-dim)' : 'var(--bg-elevated)',
+                      color: f.original_remis ? 'var(--success)' : 'var(--text-muted)' }}>
+                    {f.original_remis ? '✓ Original remis' : 'Original non remis'}
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function BLsTable({ bls, selectedAdresse, filterPaiementBL, periodeDebut, periodeFin, openPrintBL, format }) {
+  const blsFiltres = bls.filter(bl =>
+    (!selectedAdresse || bl.commandes?.adresse_livraison_id === selectedAdresse) &&
+    (!filterPaiementBL || bl.commandes?.statut_paiement === filterPaiementBL) &&
+    (!periodeDebut || bl.date_creation >= periodeDebut) &&
+    (!periodeFin || bl.date_creation <= periodeFin + 'T23:59:59')
+  )
+  if (blsFiltres.length === 0) {
+    return <div className="empty-state"><h3>Aucun BL pour les filtres sélectionnés</h3></div>
+  }
+  return (
+    <div className="table-wrap">
+      <table>
+        <thead>
+          <tr><th>N° BL</th><th>Commande</th><th>Date</th><th>Statut paiement</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          {blsFiltres.map(bl => (
+            <tr key={bl.id}>
+              <td><span className="font-display" style={{ fontWeight:700, color:'var(--info)' }}>{bl.numero_bl}</span></td>
+              <td className="text-muted">{bl.commandes?.numero_commande}</td>
+              <td className="text-muted">{format(new Date(bl.date_creation), 'dd/MM/yyyy')}</td>
+              <td>
+                <span className={`badge ${bl.commandes?.statut_paiement === 'paye' ? 'badge-green' : 'badge-yellow'}`}>
+                  {bl.commandes?.statut_paiement === 'paye' ? '✓ Payé' : '⏳ Non payé'}
+                </span>
+              </td>
+              <td>
+                <div className="flex gap-2 items-center">
+                  <button className="btn btn-ghost btn-sm" onClick={() => openPrintBL(bl)}>⬇ Télécharger</button>
+                  {bl.factures && (
+                    <span style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, background: 'var(--success-dim)', color: 'var(--success)', whiteSpace: 'nowrap' }}>
+                      🧾 {bl.factures.numero_facture}
+                    </span>
+                  )}
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 export default function AdminFactures() {
   const [tab, setTab]                       = useState('factures')
   const [mentionModal, setMentionModal]     = useState(null)
@@ -340,7 +428,7 @@ export default function AdminFactures() {
                   {(() => {
                     const blsSelectionnables = bls.filter(bl =>
                       (!selectedAdresse || bl.commandes?.adresse_livraison_id === selectedAdresse) &&
-                      (!filterPaiementBL || bl.commandes?.statut_paiement === filterPaiementBL) &&
+                      (bl.commandes?.statut_paiement !== 'paye') &&
                       (!periodeDebut || bl.date_creation >= periodeDebut) &&
                       (!periodeFin || bl.date_creation <= periodeFin + 'T23:59:59')
                     )
@@ -504,79 +592,28 @@ export default function AdminFactures() {
                         <button className="btn btn-ghost btn-sm" onClick={() => { setFilterAdresseFact(''); setFilterDateDebutFact(''); setFilterDateFinFact('') }}>✕</button>
                       )}
                     </div>
-                    {(() => {
-                      const facturesFiltrees = factures
-                        .filter(f => !filterDateDebutFact || (f.date_facture||'').slice(0,10) >= filterDateDebutFact)
-                        .filter(f => !filterDateFinFact   || (f.date_facture||'').slice(0,10) <= filterDateFinFact)
-                        .filter(f => !filterAdresseFact   || f.commandes?.adresse_livraison_id === filterAdresseFact)
-                        .sort((a, b) => sortFactures === 'desc'
-                          ? new Date(b.date_facture) - new Date(a.date_facture)
-                          : new Date(a.date_facture) - new Date(b.date_facture)
-                        )
-                    return facturesFiltrees.length === 0
-                      ? <div className="empty-state"><h3>Aucune facture</h3><p style={{ fontSize:13, color:'var(--text-muted)' }}>Aucune facture pour ces filtres.</p></div>
-                      : <div className="table-wrap"><table>
-                          <thead><tr><th>N° Facture</th><th>Réf. BL(s)</th><th>Date</th><th>Montant TTC</th><th>Adresse</th><th>Action</th></tr></thead>
-                          <tbody>
-                            {facturesFiltrees.map(f => (
-                              <tr key={f.id}>
-                                <td><span className="font-display" style={{ fontWeight:700, color:'var(--success)' }}>{f.numero_facture}</span></td>
-                                <td><span className="badge badge-blue" style={{ fontSize:11 }}>{f.bons_livraison?.numero_bl || '—'}</span></td>
-                                <td className="text-muted">{format(new Date(f.date_facture), 'dd/MM/yyyy')}</td>
-                                <td style={{ fontWeight:700 }}>{Number(f.montant_total).toFixed(2)} DH</td>
-                                <td className="text-muted" style={{ fontSize: 12 }}>{adresses.find(a => a.id === f.commandes?.adresse_livraison_id)?.label || '—'}</td>
-                                <td>
-                                  <div className="flex gap-2 items-center">
-                                    <button className="btn btn-ghost btn-sm" onClick={() => openPrintFacture(f)}>⬇ Télécharger</button>
-                                    <button
-                                      onClick={() => toggleOriginalRemis(f.id, f.original_remis)}
-                                      style={{ fontSize:11, padding:'3px 8px', borderRadius:6, border:'none', cursor:'pointer',
-                                        background: f.original_remis ? 'var(--success-dim)' : 'var(--bg-elevated)',
-                                        color: f.original_remis ? 'var(--success)' : 'var(--text-muted)' }}
-                                    >
-                                      {f.original_remis ? '✓ Original remis' : 'Original non remis'}
-                                    </button>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table></div>
-                  })()}
+                    <FacturesTable
+                      factures={factures}
+                      filterDateDebutFact={filterDateDebutFact}
+                      filterDateFinFact={filterDateFinFact}
+                      filterAdresseFact={filterAdresseFact}
+                      sortFactures={sortFactures}
+                      adresses={adresses}
+                      format={format}
+                      openPrintFacture={openPrintFacture}
+                      toggleOriginalRemis={toggleOriginalRemis}
+                    />
                   </>
                 ) : tab === 'bls' ? (
-                  (() => {
-                    const blsFiltered = bls.filter(bl => (!selectedAdresse || bl.commandes?.adresse_livraison_id === selectedAdresse) && (!filterPaiementBL || bl.commandes?.statut_paiement === filterPaiementBL) && (!periodeDebut || bl.date_creation >= periodeDebut) && (!periodeFin || bl.date_creation <= periodeFin + 'T23:59:59'))
-                    return blsFiltered.length === 0
-                      ? <div className="empty-state"><h3>Aucun BL pour les filtres sélectionnés</h3></div>
-                      : <div className="table-wrap"><table>
-                          <thead><tr><th>N° BL</th><th>Commande</th><th>Date</th><th>Statut paiement</th><th>Action</th></tr></thead>
-                          <tbody>
-                            {blsFiltered.map(bl => (
-                            <tr key={bl.id}>
-                              <td><span className="font-display" style={{ fontWeight:700, color:'var(--info)' }}>{bl.numero_bl}</span></td>
-                              <td className="text-muted">{bl.commandes?.numero_commande}</td>
-                              <td className="text-muted">{format(new Date(bl.date_creation), 'dd/MM/yyyy')}</td>
-                              <td>
-                                <span className={`badge ${bl.commandes?.statut_paiement === 'paye' ? 'badge-green' : 'badge-yellow'}`}>
-                                  {bl.commandes?.statut_paiement === 'paye' ? '✓ Payé' : '⏳ Non payé'}
-                                </span>
-                              </td>
-                              <td>
-                                <div className="flex gap-2 items-center">
-                                  <button className="btn btn-ghost btn-sm" onClick={() => openPrintBL(bl)}>⬇ Télécharger</button>
-                                  {bl.factures && (
-                                    <span style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, background: 'var(--success-dim)', color: 'var(--success)', whiteSpace: 'nowrap' }}>
-                                      🧾 {bl.factures.numero_facture}
-                                    </span>
-                                  )}
-                                </div>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table></div>
-                  })()
+                  <BLsTable
+                    bls={bls}
+                    selectedAdresse={selectedAdresse}
+                    filterPaiementBL={filterPaiementBL}
+                    periodeDebut={periodeDebut}
+                    periodeFin={periodeFin}
+                    openPrintBL={openPrintBL}
+                    format={format}
+                  />
                 ) : (
                   <>
                     {/* Filtres commandes */}
