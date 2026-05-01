@@ -5,6 +5,7 @@ import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { Check, X, Eye, EyeOff } from 'lucide-react'
 import { emailBienvenue, emailAdminNouvelleDemandeCompte } from '../../lib/email.js'
+import { smsCompteCreé, smsBienvenue } from '../../lib/sms.js'
 
 function genPassword() {
   const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789'
@@ -47,7 +48,6 @@ export default function AdminDemandes() {
     if (!selected) return
     setProcessing(true)
     try {
-      // Créer le compte via Edge Function (Admin API)
       const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch('https://ugnmuxhgwiexuuetvbtd.supabase.co/functions/v1/create-user', {
         method: 'POST',
@@ -71,22 +71,33 @@ export default function AdminDemandes() {
       const result = await res.json()
       if (!res.ok) throw new Error(result.error || 'Erreur création compte')
 
-      // Envoyer email avec identifiants
+      // Email avec identifiants
       await emailBienvenue(selected.email, selected.nom, generatedPwd)
 
-      // Notifier le client dans l'appli
+      // SMS avec identifiants
+      if (selected.telephone) {
+        try {
+          await smsCompteCreé(selected.telephone, selected.nom, selected.email, generatedPwd)
+        } catch(e) { console.error('SMS compte créé error:', e) }
+      }
+
+      // Notification dans l'app
       if (result.user_id) {
         await supabase.from('notifications').insert({
           user_id: result.user_id, type: 'success',
           titre: 'Compte activé',
           message: 'Bienvenue parmi nos fidèles clients. Vous pouvez désormais passer commande.',
         })
+        // SMS bienvenue (après 2 secondes pour ne pas spammer)
+        if (selected.telephone) {
+          setTimeout(async () => {
+            try { await smsBienvenue(selected.telephone, selected.nom) } catch(e) {}
+          }, 2000)
+        }
       }
 
-      // Marquer la demande comme acceptée
       await supabase.from('demandes_inscription').update({ statut: 'accepte' }).eq('id', selected.id)
-
-      toast.success(`Compte créé et email envoyé à ${selected.email}`)
+      toast.success(`Compte créé — email et SMS envoyés à ${selected.nom}`)
       setSelected(null)
       load()
     } catch (err) {
@@ -101,7 +112,6 @@ export default function AdminDemandes() {
     setProcessing(true)
     try {
       await supabase.from('demandes_inscription').update({ statut: 'refuse' }).eq('id', selected.id)
-      // Email de refus optionnel — on peut l'activer plus tard
       toast.success('Demande refusée')
       setSelected(null)
       load()
@@ -166,7 +176,6 @@ export default function AdminDemandes() {
           )}
         </div>
 
-        {/* Panneau détail */}
         {selected && (
           <div className="card">
             <div className="flex items-center justify-between mb-4">
@@ -192,8 +201,6 @@ export default function AdminDemandes() {
             {selected.statut === 'en_attente' && (
               <>
                 <div className="divider" />
-
-                {/* Mot de passe généré */}
                 <div style={{ padding: 12, background: 'var(--bg-elevated)', borderRadius: 8, marginBottom: 14 }}>
                   <div style={{ fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6 }}>Mot de passe temporaire</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -209,7 +216,6 @@ export default function AdminDemandes() {
                   </div>
                 </div>
 
-                {/* Condition de paiement */}
                 <div className="form-group" style={{ marginBottom: 16 }}>
                   <label className="form-label">Condition de paiement</label>
                   <select className="form-select" value={condPaiement} onChange={e => setCondPaiement(e.target.value)}>

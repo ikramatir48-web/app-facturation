@@ -6,6 +6,7 @@ import { fr } from 'date-fns/locale'
 import { CheckCircle, Truck, X, CreditCard } from 'lucide-react'
 import { PrintBL, PrintBC, PrintFacture } from '../../components/shared/PrintDocs.jsx'
 import { emailConfirmationCommande, emailBLDisponible, emailLivraisonEffectuee, emailFactureDisponible, emailEnvoiDocument } from '../../lib/email.js'
+import { smsCommandeLivree } from '../../lib/sms.js'
 
 function StatutBadge({ statut }) {
   const map = {
@@ -152,6 +153,10 @@ export default function AdminCommandes() {
           clientNom = p?.nom
         }
         if (clientEmail) await emailLivraisonEffectuee(clientEmail, clientNom, cmd.numero_commande)
+        const tel = cmd.profiles?.telephone
+        if (tel) {
+          try { await smsCommandeLivree(tel, clientNom, cmd.numero_commande) } catch(e) { console.error('SMS error:', e) }
+        }
       } catch(e) { console.error('Email livraison error:', e) }
       await load()
       if (selected?.cmd?.id === cmd.id) await openDetail({ ...cmd, statut: 'livree' })
